@@ -1,5 +1,7 @@
 # TAWOS Data Export Script
 
+The dataset is available here: https://github.com/SOLAR-group/TAWOS
+
 This script connects to a MySQL database, selects the first **N issues**, and exports them along with all related records (comments, change logs, etc.) into CSV files. It also exports several lookup/reference tables.
 
 All exported CSV files are saved into the `exports/` directory.
