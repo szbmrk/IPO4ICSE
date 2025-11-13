@@ -1,0 +1,50 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+import tomllib
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Config:
+    def __init__(self, env_file: str = ".env", toml_file: str = "config.toml"):
+        self.env_path = Path(env_file)
+        if self.env_path.exists():
+            load_dotenv(dotenv_path=self.env_path)
+        else:
+            logger.error(f"{env_file} not found")
+            exit(-1)
+
+        self.toml_path = Path(toml_file)
+        if self.toml_path.exists():
+            with open(self.toml_path, "rb") as f:
+                self.toml_config = tomllib.load(f)
+        else:
+            logger.error(f"{toml_file} not found")
+            exit(-1)
+
+        self._load_env()
+        self._load_toml()
+
+    def _load_env(self):
+        self.DB_HOST = os.getenv("DB_HOST")
+        self.DB_USER = os.getenv("DB_USER")
+        self.DB_PASSWORD = os.getenv("DB_PASSWORD")
+        self.DB_NAME = os.getenv("DB_NAME")
+
+    def _load_toml(self):
+        export_cfg = self.toml_config.get("export", {})
+        self.EXPORT_LIMIT = export_cfg.get("limit", 1000)
+        self.EXPORT_FOLDER = export_cfg.get("folder", "exports")
+
+        logging_cfg = self.toml_config.get("logging", {})
+        self.LOG_LEVEL = logging_cfg.get("level", "INFO")
+        self.LOG_FORMAT = logging_cfg.get(
+            "format", "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+        )
+        self.LOG_DATEFMT = logging_cfg.get("datefmt", "%Y-%m-%d %H:%M:%S")
+        self.LOG_FILE = logging_cfg.get("file", None)
+
+
+config = Config()
