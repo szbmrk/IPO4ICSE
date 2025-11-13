@@ -1,3 +1,7 @@
+[export]
+limit = 1000
+folder = "exports"
+
 [logging]
 level = "DEBUG"
 format = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
