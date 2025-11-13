@@ -40,7 +40,7 @@ In the script, two variables can be adjusted:
 ## How to Run
 
 ```
-python src/main.py
+python src/converter.py
 ```
 
 ## Output Example
