@@ -11,10 +11,12 @@ classifiers = [
 ]
 
 dependencies = [
+    "aiohttp>=3.13.2",
     "cryptography>=46.0.3",
     "dotenv>=0.9.9",
     "pandas>=2.3.3",
     "pymysql>=1.1.2",
+    "requests>=2.32.5",
     "sqlalchemy>=2.0.44",
 ]
 

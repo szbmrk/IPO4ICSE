@@ -1,13 +1,16 @@
+import asyncio
 import os
 import pandas as pd
 
+from core.local_model_cleaner import classify_by_local_model
 from core.log import get_logger
+from config_loader import config
 
 logger = get_logger("DataCleaning")
 
 
 def __remove_columns_from_csv(
-    file_name: str, columns: list[str], folder_path: str = "exports"
+    file_name: str, columns: list[str], folder_path: str = config.EXPORT_FOLDER
 ):
     file_path = os.path.join(folder_path, file_name)
 
@@ -38,3 +41,13 @@ def remove_unnecessery_columns():
     __remove_columns_from_csv("Issue.csv", ["Jira_ID", "Issue_Key", "URL"])
     __remove_columns_from_csv("Component.csv", ["Jira_ID"])
     logger.info("Removing unnecessery columns done")
+
+
+def add_points_generated_by_local_model():
+    logger.info("Starting filtering by local model")
+    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
+    df = pd.read_csv(issues_path, sep=";")
+    points = asyncio.run(classify_by_local_model(df))
+    df["local_llm_points"] = points
+    df.to_csv(issues_path, sep=";", index=False)
+    logger.info(f"Saved modified file as '{issues_path}'")

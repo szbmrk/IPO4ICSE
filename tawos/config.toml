@@ -2,6 +2,10 @@
 limit = 1000
 folder = "exports"
 
+[local_model]
+url = "http://localhost:8080/completion"
+batch_size = 20
+
 [logging]
 level = "DEBUG"
 format = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"

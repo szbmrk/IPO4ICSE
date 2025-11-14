@@ -38,6 +38,12 @@ class Config:
         self.EXPORT_LIMIT = export_cfg.get("limit", 1000)
         self.EXPORT_FOLDER = export_cfg.get("folder", "exports")
 
+        local_model_cfg = self.toml_config.get("local_model", {})
+        self.LOCAL_MODEL_URL = local_model_cfg.get(
+            "url", "http://localhost:8080/completion"
+        )
+        self.LOCAL_MODEL_BATCH_SIZE = self.toml_config.get("batch_size", 20)
+
         logging_cfg = self.toml_config.get("logging", {})
         self.LOG_LEVEL = logging_cfg.get("level", "INFO")
         self.LOG_FORMAT = logging_cfg.get(
