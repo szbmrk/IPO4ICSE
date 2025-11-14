@@ -8,14 +8,25 @@ import os
 from core.log import get_logger
 from config_loader import config
 
-logger = get_logger("LocalModel")
-
 
 def __extract_json(text: str):
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         return None
     return json.loads(match.group(0))
+
+
+async def __get_model_name():
+    url = config.LOCAL_MODEL_URL.rstrip("/") + "/v1/models"
+    print(url)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            data = await resp.json()
+
+            full_path = data["models"][0]["name"]
+            filename = os.path.basename(full_path)
+            name = os.path.splitext(filename)[0]
+            return name.replace(".gguf", "")
 
 
 async def __classify_single(session: aiohttp.ClientSession, title: str, desc: str):
@@ -38,7 +49,9 @@ Respond only with JSON.
     }
 
     try:
-        async with session.post(config.LOCAL_MODEL_URL, json=payload) as resp:
+        async with session.post(
+            f"{config.LOCAL_MODEL_URL}/completions", json=payload
+        ) as resp:
             resp_json = await resp.json()
             raw = resp_json.get("content", "")
             data = __extract_json(raw)
@@ -54,6 +67,10 @@ async def __classify_batch(rows):
 
 
 async def classify_by_local_model(df: pd.DataFrame):
+    model_name = await __get_model_name()
+    logger = get_logger(model_name)
+    points_column = f"model_{model_name}_points"
+
     total_rows = len(df)
     logger.info(f"Classification started for {total_rows} rows")
     logger.debug(f"Using batch size: {config.LOCAL_MODEL_BATCH_SIZE}")
@@ -67,7 +84,7 @@ async def classify_by_local_model(df: pd.DataFrame):
         logger.info(f"Found existing temp file at {temp_file}, loading…")
         temp_df = pd.read_csv(temp_file, sep=";")
         processed_indices = set(temp_df.index)
-        results = temp_df["local_llm_points"].tolist()
+        results = temp_df[points_column].tolist()
         logger.info(f"Loaded {len(processed_indices)} previously processed rows")
     else:
         logger.info("No temp file found, starting fresh.")
@@ -90,7 +107,7 @@ async def classify_by_local_model(df: pd.DataFrame):
 
         results.extend(batch_results)
 
-        temp_df = pd.DataFrame({"local_llm_points": results})
+        temp_df = pd.DataFrame({points_column: results})
         temp_df.to_csv(temp_file, sep=";", index=False)
         logger.info(f"Batch {batch_idx}/{num_batches} completed")
 
