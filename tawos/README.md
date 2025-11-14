@@ -6,6 +6,8 @@ This script connects to a MySQL database, selects the first **N issues** (define
 
 After the export, a data cleaning step (`data_cleaning.py`) is automatically run to modify the generated files.
 
+After the basic cleaning multiple validiation processes are run to filter out the irrelevant and troll issues.
+
 All exported CSV files are saved into a configurable output directory (default: `exports/`).
 
 ## Requirements
@@ -35,14 +37,20 @@ DB_NAME=TAWOS
 
 ### 2. settings
 
-Create a `config.toml` file to control the export process and logging behavior.
+Create a `config.toml` file to control the behaviour of the pipeline.
 
 ```toml
 [export]
-# Number of issues to export
+# Number of issues to export (set to 0 for no limit)
 limit = 1000
 # Output directory for CSV files
 folder = "exports"
+
+[local_model]
+# Local url for the model ran by llamacpp
+url = "http://localhost:8080/completion"
+# Batch size to process the data
+batch_size = 20
 
 [logging]
 level = "INFO"
