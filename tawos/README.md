@@ -48,7 +48,7 @@ folder = "exports"
 
 [local_model]
 # Local url for the model ran by llamacpp
-url = "http://localhost:8080/completion"
+url = "http://localhost:8080"
 # Batch size to process the data
 batch_size = 20
 
