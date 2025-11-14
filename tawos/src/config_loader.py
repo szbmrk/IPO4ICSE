@@ -43,6 +43,8 @@ class Config:
             "url", "http://localhost:8080/completion"
         )
         self.LOCAL_MODEL_BATCH_SIZE = self.toml_config.get("batch_size", 20)
+        self.LOCAL_MODEL_N_PREDICT = self.toml_config.get("n_predict", 40)
+        self.LOCAL_MODEL_TEMP = self.toml_config.get("temp", 0)
 
         logging_cfg = self.toml_config.get("logging", {})
         self.LOG_LEVEL = logging_cfg.get("level", "INFO")

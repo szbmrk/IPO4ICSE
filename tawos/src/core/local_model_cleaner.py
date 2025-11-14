@@ -27,7 +27,11 @@ Title: "{title}"
 Description: "{desc}"
 Respond only with JSON.
 """
-    payload = {"prompt": prompt, "n_predict": 40, "temperature": 0}
+    payload = {
+        "prompt": prompt,
+        "n_predict": config.LOCAL_MODEL_N_PREDICT,
+        "temperature": config.LOCAL_MODEL_TEMP,
+    }
 
     try:
         async with session.post(config.LOCAL_MODEL_URL, json=payload) as resp:
