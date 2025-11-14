@@ -21,19 +21,33 @@ def export_sql_to_csv():
         f"mysql+pymysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}/{config.DB_NAME}"
     )
 
-    logger.info(f"Loading first {config.EXPORT_LIMIT} issues...")
-    issues = pd.read_sql(
-        text(
-            """
-        SELECT *
-        FROM Issue
-        ORDER BY ID
-        LIMIT :limit_val
-    """
-        ),
-        engine,
-        params={"limit_val": config.EXPORT_LIMIT},
-    )
+    logger.info("Loading issues...")
+
+    if config.EXPORT_LIMIT > 0:
+        issues = pd.read_sql(
+            text(
+                """
+            SELECT *
+            FROM Issue
+            ORDER BY ID
+            LIMIT :limit_val
+        """
+            ),
+            engine,
+            params={"limit_val": config.EXPORT_LIMIT},
+        )
+    else:
+        issues = pd.read_sql(
+            text(
+                """
+            SELECT *
+            FROM Issue
+            ORDER BY ID
+        """
+            ),
+            engine,
+        )
+
     issues.to_csv(f"{config.EXPORT_FOLDER}/Issue.csv", sep=";", index=False)
 
     issue_ids = tuple(issues["ID"].tolist())
