@@ -18,7 +18,11 @@ async def __classify_single(session: aiohttp.ClientSession, title: str, desc: st
     prompt = f"""
 You are a classifier. Output ONLY valid JSON. 
 The JSON must be: {{"p": <integer from 0 to 100>}}
+Never write explanations or comments.
 
+Your task is to give points to issues based on validity. 0 is spam, 100 is legit.
+
+Issue:
 Title: "{title}"
 Description: "{desc}"
 Respond only with JSON.
