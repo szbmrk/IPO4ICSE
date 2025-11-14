@@ -47,7 +47,7 @@ def add_points_generated_by_local_model():
     logger.info("Starting filtering by local model")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
-    points = asyncio.run(classify_by_local_model(df))
-    df["local_llm_points"] = points
+    points, column_name = asyncio.run(classify_by_local_model(df))
+    df[column_name] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")

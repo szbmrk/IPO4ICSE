@@ -112,4 +112,4 @@ async def classify_by_local_model(df: pd.DataFrame):
         logger.info(f"Batch {batch_idx}/{num_batches} completed")
 
     logger.info(f"Classification finished for all {total_rows} rows")
-    return results
+    return results, points_column
