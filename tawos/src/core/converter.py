@@ -23,7 +23,7 @@ def export_sql_to_csv():
 
     logger.info("Loading issues...")
 
-    if config.EXPORT_LIMIT > 0:
+    if config.EXPORT_LIMIT > 1:
         issues = pd.read_sql(
             text(
                 """
@@ -79,4 +79,4 @@ def export_sql_to_csv():
     __export("SELECT * FROM Project", "Project", engine)
     __export("SELECT * FROM Repository", "Repository", engine)
 
-    logger.info("All CSVs exported into ./exports")
+    logger.info(f"All CSVs exported into ./{config.EXPORT_FOLDER}")
