@@ -17,7 +17,7 @@ def __extract_json(text: str):
 async def __classify_single(session: aiohttp.ClientSession, title: str, desc: str):
     prompt = f"""
 You are a classifier. Output ONLY valid JSON. 
-The JSON must be: {{"point": <integer from 0 to 100>}}
+The JSON must be: {{"p": <integer from 0 to 100>}}
 
 Title: "{title}"
 Description: "{desc}"
@@ -30,7 +30,7 @@ Respond only with JSON.
             resp_json = await resp.json()
             raw = resp_json.get("content", "")
             data = __extract_json(raw)
-            return data["point"] if data else -1
+            return data["p"] if data else -1
     except Exception:
         return -1
 
