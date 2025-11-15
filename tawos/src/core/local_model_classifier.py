@@ -17,7 +17,7 @@ def __extract_json(text: str):
 
 
 async def __get_model_name():
-    url = config.LOCAL_MODEL_URL.rstrip("/") + "/v1/models"
+    url = config.LOCAL_MODEL_URL + "/v1/models"
     print(url)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
@@ -69,7 +69,7 @@ async def __classify_batch(rows):
 async def classify_by_local_model(df: pd.DataFrame):
     model_name = await __get_model_name()
     logger = get_logger(model_name)
-    points_column = f"model_{model_name}_points"
+    points_column = f"model_{model_name}_validity_point"
 
     total_rows = len(df)
     logger.info(f"Classification started for {total_rows} rows")

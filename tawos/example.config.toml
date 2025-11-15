@@ -5,10 +5,13 @@ folder = "exports"
 
 [local_model]
 enabled = true
-url = "http://localhost:8080/"
-batch_size = 20
+url = "http://localhost:8080"
+batch_size = 16
 n_predict = 40
 temp = 0.5
+
+[benchmark]
+folder = "exports"
 
 [logging]
 level = "DEBUG"

@@ -49,6 +49,8 @@ limit = 1000
 folder = "exports"
 
 [local_model]
+# Use llamacpp local model for classifying
+enabled = true
 # Local url for the model ran by llamacpp
 url = "http://localhost:8080"
 # Batch size to process the data

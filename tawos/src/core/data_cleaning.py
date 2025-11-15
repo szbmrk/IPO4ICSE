@@ -61,6 +61,6 @@ def add_points_generated_by_own_metrics():
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
     points = classify_by_own_metrics(df)
-    df["own_metrics_point"] = points
+    df["own_validity_point"] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")

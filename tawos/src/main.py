@@ -1,3 +1,4 @@
+import argparse
 from core.converter import export_sql_to_csv
 from core.data_cleaning import (
     add_points_generated_by_local_model,
@@ -7,12 +8,31 @@ from core.data_cleaning import (
 from core.log import get_logger
 from config_loader import config
 
+
 logger = get_logger("main")
 
-if __name__ == "__main__":
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--benchmark", action="store_true", help="Run the benchmark pipeline"
+    )
+    args = parser.parse_args()
+
+    if args.benchmark:
+        logger.info("Running benchmarks")
+        exit(0)
+
     if config.EXPORT_ENABLED:
         export_sql_to_csv()
+
     remove_unnecessery_columns()
+
     if config.LOCAL_MODEL_ENABLED:
         add_points_generated_by_local_model()
+
     add_points_generated_by_own_metrics()
+
+
+if __name__ == "__main__":
+    main()
