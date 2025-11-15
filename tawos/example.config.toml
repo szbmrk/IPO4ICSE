@@ -4,10 +4,11 @@ limit = 1000
 folder = "exports"
 
 [local_model]
+enabled = true
 url = "http://localhost:8080/"
 batch_size = 20
 n_predict = 40
-temp = 0
+temp = 0.5
 
 [logging]
 level = "DEBUG"
