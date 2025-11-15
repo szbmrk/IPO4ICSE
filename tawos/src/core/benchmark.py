@@ -6,7 +6,7 @@ from core.log import get_logger
 
 logger = get_logger("Benchmark")
 
-OUTPUT_DIR = "benchmark"
+OUTPUT_DIR = config.BENCHMARK_OUTPUT
 
 
 def __save_plot(filename):

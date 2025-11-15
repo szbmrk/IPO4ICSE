@@ -12,6 +12,7 @@ temp = 0.5
 
 [benchmark]
 folder = "exports"
+output = "benchmark"
 
 [logging]
 level = "INFO"

@@ -48,6 +48,7 @@ class Config:
 
         benchmark_cfg = self.toml_config.get("benchmark", {})
         self.BENCHMARK_FOLDER = benchmark_cfg.get("folder", "exports")
+        self.BENCHMARK_OUTPUT = benchmark_cfg.get("output", "benchmark")
 
         logging_cfg = self.toml_config.get("logging", {})
         self.LOG_LEVEL = logging_cfg.get("level", "INFO")
