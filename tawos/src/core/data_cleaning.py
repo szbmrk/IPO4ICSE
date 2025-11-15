@@ -2,17 +2,16 @@ import asyncio
 import os
 import pandas as pd
 
-from core.local_model_classifier import classify_by_local_model
+from core.gemini_classifier import GeminiClassifier
+from core.local_model_classifier import LocalModelClassifier
 from core.log import get_logger
 from config_loader import config
-from core.own_metrics_classifier import (
-    classify_by_own_metrics,
-)
+from core.own_metrics_classifier import classify_by_own_metrics
 
 logger = get_logger("DataCleaning")
 
 
-def __remove_columns_from_csv(
+def _remove_columns_from_csv(
     file_name: str, columns: list[str], folder_path: str = config.EXPORT_FOLDER
 ):
     file_path = os.path.join(folder_path, file_name)
@@ -39,18 +38,28 @@ def __remove_columns_from_csv(
 
 
 def remove_unnecessery_columns():
-    __remove_columns_from_csv("Project.csv", ["URL", "Project_Key"])
-    __remove_columns_from_csv("Repository.csv", ["URL"])
-    __remove_columns_from_csv("Issue.csv", ["Jira_ID", "Issue_Key", "URL"])
-    __remove_columns_from_csv("Component.csv", ["Jira_ID"])
+    _remove_columns_from_csv("Project.csv", ["URL", "Project_Key"])
+    _remove_columns_from_csv("Repository.csv", ["URL"])
+    _remove_columns_from_csv("Issue.csv", ["Jira_ID", "Issue_Key", "URL"])
+    _remove_columns_from_csv("Component.csv", ["Jira_ID"])
     logger.info("Removing unnecessery columns done")
 
 
-def add_points_generated_by_local_model():
+def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     logger.info("Starting classifying by local model")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
-    points, column_name = asyncio.run(classify_by_local_model(df))
+    points, column_name = asyncio.run(classifier.classify(df))
+    df[column_name] = points
+    df.to_csv(issues_path, sep=";", index=False)
+    logger.info(f"Saved modified file as '{issues_path}'")
+
+
+def add_points_generated_by_gemini(classifier: GeminiClassifier):
+    logger.info("Starting classifying by gemini")
+    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
+    df = pd.read_csv(issues_path, sep=";")
+    points, column_name = asyncio.run(classifier.classify(df))
     df[column_name] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")

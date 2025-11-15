@@ -7,7 +7,7 @@ from core.log import get_logger
 logger = get_logger("Converter")
 
 
-def __export(query: str, file_name: str, engine, params=None):
+def _export(query: str, file_name: str, engine, params=None):
     df = pd.read_sql(text(query), engine, params=params or {})
     df.to_csv(f"{config.EXPORT_FOLDER}/{file_name}.csv", sep=";", index=False)
     logger.info(f"{file_name}.csv  ({len(df)} rows)")
@@ -53,7 +53,7 @@ def export_sql_to_csv():
     issue_ids = tuple(issues["ID"].tolist())
     logger.info(f"{len(issue_ids)} issues included.")
 
-    __export(
+    _export(
         """
         SELECT * FROM Comment WHERE Issue_ID IN :ids
     """,
@@ -62,7 +62,7 @@ def export_sql_to_csv():
         {"ids": issue_ids},
     )
 
-    __export(
+    _export(
         """
         SELECT * FROM Change_Log WHERE Issue_ID IN :ids
     """,
@@ -71,7 +71,7 @@ def export_sql_to_csv():
         {"ids": issue_ids},
     )
 
-    __export(
+    _export(
         """
         SELECT * FROM Issue_Link WHERE Issue_ID IN :ids
     """,
@@ -82,10 +82,10 @@ def export_sql_to_csv():
 
     logger.info("Exporting lookup tables...")
 
-    __export("SELECT * FROM Component", "Component", engine)
-    __export("SELECT * FROM User", "User", engine)
-    __export("SELECT * FROM Sprint", "Sprint", engine)
-    __export("SELECT * FROM Project", "Project", engine)
-    __export("SELECT * FROM Repository", "Repository", engine)
+    _export("SELECT * FROM Component", "Component", engine)
+    _export("SELECT * FROM User", "User", engine)
+    _export("SELECT * FROM Sprint", "Sprint", engine)
+    _export("SELECT * FROM Project", "Project", engine)
+    _export("SELECT * FROM Repository", "Repository", engine)
 
     logger.info(f"All CSVs exported into ./{config.EXPORT_FOLDER}")

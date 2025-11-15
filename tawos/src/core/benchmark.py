@@ -9,7 +9,7 @@ logger = get_logger("Benchmark")
 OUTPUT_DIR = config.BENCHMARK_OUTPUT
 
 
-def __save_plot(filename):
+def _save_plot(filename):
     path = os.path.join(OUTPUT_DIR, filename)
     plt.tight_layout()
     plt.savefig(path, dpi=300, bbox_inches="tight")
@@ -17,7 +17,7 @@ def __save_plot(filename):
     logger.info(f"Saved: {path}")
 
 
-def __failure_rate_analysis(df, point_columns):
+def _failure_rate_analysis(df, point_columns):
     logger.info("Calculating failure rates")
     failure_stats = (df[point_columns] == -1).mean().sort_values()
     plt.figure(figsize=(10, 5))
@@ -25,7 +25,7 @@ def __failure_rate_analysis(df, point_columns):
     plt.title("Failure Rate per Model (Couldn't classify)")
     plt.ylabel("Failure Rate")
     plt.xticks(rotation=45)
-    __save_plot("failure_rate_per_model.png")
+    _save_plot("failure_rate_per_model.png")
 
 
 def run_benchmark():
@@ -39,7 +39,7 @@ def run_benchmark():
     df_clean = df[point_columns].replace(-1, pd.NA)
     df_clean = df.dropna()
 
-    __failure_rate_analysis(df, point_columns)
+    _failure_rate_analysis(df, point_columns)
 
     logger.info("Benchmarking complete")
     logger.info(f"All plots saved to: {OUTPUT_DIR}/")

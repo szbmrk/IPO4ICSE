@@ -7,7 +7,15 @@ folder = "exports"
 enabled = true
 url = "http://localhost:8080"
 batch_size = 16
-n_predict = 40
+n_predict = 20
+temp = 0.5
+
+[gemini]
+enabled = true
+api_key = "your_key_here"
+model = "gemini-2.5-flash"
+batch_size = 16
+n_predict = 20
 temp = 0.5
 
 [benchmark]

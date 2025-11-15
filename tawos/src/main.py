@@ -3,11 +3,14 @@ from core.benchmark import run_benchmark
 from core.converter import export_sql_to_csv
 from core.data_cleaning import (
     add_points_generated_by_local_model,
+    add_points_generated_by_gemini,
     add_points_generated_by_own_metrics,
     remove_unnecessery_columns,
 )
 from core.log import get_logger
 from config_loader import config
+from core.gemini_classifier import GeminiClassifier
+from core.local_model_classifier import LocalModelClassifier
 
 
 logger = get_logger("main")
@@ -34,7 +37,12 @@ def main():
     remove_unnecessery_columns()
 
     if config.LOCAL_MODEL_ENABLED:
-        add_points_generated_by_local_model()
+        local_classifier = LocalModelClassifier()
+        add_points_generated_by_local_model(local_classifier)
+
+    if config.GEMINI_ENABLED:
+        gemini_classifier = GeminiClassifier()
+        add_points_generated_by_gemini(gemini_classifier)
 
     add_points_generated_by_own_metrics()
 
