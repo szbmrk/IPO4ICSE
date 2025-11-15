@@ -15,7 +15,7 @@ def __save_plot(filename):
     plt.tight_layout()
     plt.savefig(path, dpi=300, bbox_inches="tight")
     plt.close()
-    print(f"Saved: {path}")
+    logger.info(f"Saved: {path}")
 
 
 def __failure_rate_analysis(df, point_columns):
@@ -31,7 +31,9 @@ def __failure_rate_analysis(df, point_columns):
 
 def __agreement_matrix(df):
     logger.info("Creating agreement matrix")
-    agreement = df.corr()
+    df_numeric = df.astype(float)
+    agreement = df_numeric.corr()
+
     plt.figure(figsize=(10, 8))
     sns.heatmap(agreement, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
     plt.title("Model Agreement (Correlation Matrix)")
@@ -58,9 +60,10 @@ def run_benchmark():
     file_path = os.path.join(config.BENCHMARK_FOLDER, "Issue.csv")
     df = pd.read_csv(file_path, sep=";")
 
-    point_columns = [c for c in df.columns if c.endswith("_validity_points")]
+    point_columns = [c for c in df.columns if c.endswith("_validity_point")]
 
     df_clean = df[point_columns].replace(-1, pd.NA)
+    df_clean = df.dropna()
 
     __failure_rate_analysis(df, point_columns)
     __agreement_matrix(df_clean)
