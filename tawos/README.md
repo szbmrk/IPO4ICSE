@@ -41,6 +41,8 @@ Create a `config.toml` file to control the behaviour of the pipeline.
 
 ```toml
 [export]
+# Is exproting needed or is it already exported
+enabled = true
 # Number of issues to export (set to 0 for no limit)
 limit = 1000
 # Output directory for CSV files

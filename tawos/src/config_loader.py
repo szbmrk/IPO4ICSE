@@ -37,6 +37,7 @@ class Config:
         export_cfg = self.toml_config.get("export", {})
         self.EXPORT_LIMIT = export_cfg.get("limit", 1000)
         self.EXPORT_FOLDER = export_cfg.get("folder", "exports")
+        self.EXPORT_ENABLED = export_cfg.get("enabled", True)
 
         local_model_cfg = self.toml_config.get("local_model", {})
         self.LOCAL_MODEL_URL = local_model_cfg.get(
