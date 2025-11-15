@@ -1,4 +1,5 @@
 import argparse
+from core.benchmark import run_benchmark
 from core.converter import export_sql_to_csv
 from core.data_cleaning import (
     add_points_generated_by_local_model,
@@ -20,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     if args.benchmark:
-        logger.info("Running benchmarks")
+        run_benchmark()
         exit(0)
 
     if config.EXPORT_ENABLED:

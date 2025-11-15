@@ -19,6 +19,7 @@ def __save_plot(filename):
 
 
 def __failure_rate_analysis(df, point_columns):
+    logger.info("Calculating failure rates")
     failure_stats = (df[point_columns] == -1).mean().sort_values()
     plt.figure(figsize=(10, 5))
     failure_stats.plot(kind="bar")
@@ -29,6 +30,7 @@ def __failure_rate_analysis(df, point_columns):
 
 
 def __agreement_matrix(df):
+    logger.info("Creating agreement matrix")
     agreement = df.corr()
     plt.figure(figsize=(10, 8))
     sns.heatmap(agreement, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
@@ -37,6 +39,7 @@ def __agreement_matrix(df):
 
 
 def __consensus_per_task(df):
+    logger.info("Calculating consensus std")
     df["consensus_std"] = df.std(axis=1)
     df["consensus_range"] = df.max(axis=1) - df.min(axis=1)
     df["consensus_mean"] = df.mean(axis=1)
@@ -50,6 +53,7 @@ def __consensus_per_task(df):
 
 
 def run_benchmark():
+    logger.info("Running benchmarks")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     file_path = os.path.join(config.BENCHMARK_FOLDER, "Issue.csv")
     df = pd.read_csv(file_path, sep=";")
