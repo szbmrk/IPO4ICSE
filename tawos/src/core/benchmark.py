@@ -22,7 +22,7 @@ def __failure_rate_analysis(df, point_columns):
     failure_stats = (df[point_columns] == -1).mean().sort_values()
     plt.figure(figsize=(10, 5))
     failure_stats.plot(kind="bar")
-    plt.title("Failure Rate (-1) per Model")
+    plt.title("Failure Rate per Model (Couldn't classify)")
     plt.ylabel("Failure Rate")
     plt.xticks(rotation=45)
     __save_plot("failure_rate_per_model.png")
