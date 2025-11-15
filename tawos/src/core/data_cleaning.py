@@ -2,9 +2,12 @@ import asyncio
 import os
 import pandas as pd
 
-from core.local_model_cleaner import classify_by_local_model
+from core.local_model_classifier import classify_by_local_model
 from core.log import get_logger
 from config_loader import config
+from core.own_metrics_classifier import (
+    classify_by_own_metrics,
+)
 
 logger = get_logger("DataCleaning")
 
@@ -44,10 +47,20 @@ def remove_unnecessery_columns():
 
 
 def add_points_generated_by_local_model():
-    logger.info("Starting filtering by local model")
+    logger.info("Starting classifying by local model")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
     points, column_name = asyncio.run(classify_by_local_model(df))
     df[column_name] = points
+    df.to_csv(issues_path, sep=";", index=False)
+    logger.info(f"Saved modified file as '{issues_path}'")
+
+
+def add_points_generated_by_own_metrics():
+    logger.info("Starting classifying by own metrics")
+    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
+    df = pd.read_csv(issues_path, sep=";")
+    points = classify_by_own_metrics(df)
+    df["own_metrics_point"] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")
