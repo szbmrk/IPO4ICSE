@@ -25,7 +25,11 @@ def main():
         exit(0)
 
     if config.EXPORT_ENABLED:
-        export_sql_to_csv()
+        confirm = input(
+            "Are you sure you want to export? You could lose your current files. (y/n) "
+        )
+        if confirm == "y":
+            export_sql_to_csv()
 
     remove_unnecessery_columns()
 
