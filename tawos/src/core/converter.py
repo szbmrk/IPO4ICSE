@@ -71,6 +71,15 @@ def export_sql_to_csv():
         {"ids": issue_ids},
     )
 
+    __export(
+        """
+        SELECT * FROM Issue_Link WHERE Issue_ID IN :ids
+    """,
+        "Issue_Links",
+        engine,
+        {"ids": issue_ids},
+    )
+
     logger.info("Exporting lookup tables...")
 
     __export("SELECT * FROM Component", "Component", engine)
