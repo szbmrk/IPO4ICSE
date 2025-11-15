@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from config_loader import config
 import matplotlib.pyplot as plt
-import seaborn as sns
 from core.log import get_logger
 
 logger = get_logger("Benchmark")
@@ -29,31 +28,6 @@ def __failure_rate_analysis(df, point_columns):
     __save_plot("failure_rate_per_model.png")
 
 
-def __agreement_matrix(df):
-    logger.info("Creating agreement matrix")
-    df_numeric = df.astype(float)
-    agreement = df_numeric.corr()
-
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(agreement, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-    plt.title("Model Agreement (Correlation Matrix)")
-    __save_plot("agreement_matrix.png")
-
-
-def __consensus_per_task(df):
-    logger.info("Calculating consensus std")
-    df["consensus_std"] = df.std(axis=1)
-    df["consensus_range"] = df.max(axis=1) - df.min(axis=1)
-    df["consensus_mean"] = df.mean(axis=1)
-
-    plt.figure(figsize=(10, 5))
-    df["consensus_std"].hist(bins=40)
-    plt.title("Consensus Standard Deviation Across Models")
-    plt.xlabel("Standard Deviation")
-    plt.ylabel("Number of Tasks")
-    __save_plot("consensus_std_distribution.png")
-
-
 def run_benchmark():
     logger.info("Running benchmarks")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -66,8 +40,6 @@ def run_benchmark():
     df_clean = df.dropna()
 
     __failure_rate_analysis(df, point_columns)
-    __agreement_matrix(df_clean)
-    __consensus_per_task(df_clean)
 
     logger.info("Benchmarking complete")
     logger.info(f"All plots saved to: {OUTPUT_DIR}/")
