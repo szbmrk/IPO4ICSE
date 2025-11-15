@@ -11,6 +11,8 @@ from core.log import get_logger
 from config_loader import config
 from core.gemini_classifier import GeminiClassifier
 from core.local_model_classifier import LocalModelClassifier
+from core.openai_classifier import OpenAIClassifier
+from core.claude_classifier import ClaudeClassifier
 
 
 logger = get_logger("main")
@@ -43,6 +45,12 @@ def main():
     if config.GEMINI_ENABLED:
         gemini_classifier = GeminiClassifier()
         add_points_generated_by_gemini(gemini_classifier)
+
+    if config.OPENAI_ENABLED:
+        openai_classifier = OpenAIClassifier()
+
+    if config.CLAUDE_ENABLED:
+        claude_classifier = ClaudeClassifier()
 
     add_points_generated_by_own_metrics()
 

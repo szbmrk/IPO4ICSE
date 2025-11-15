@@ -54,6 +54,22 @@ class Config:
         self.GEMINI_N_PREDICT = gemini_model_cfg.get("n_predict", 20)
         self.GEMINI_TEMP = gemini_model_cfg.get("temp", 0.4)
 
+        openai_model_cfg = self.toml_config.get("openai", {})
+        self.OPENAI_ENABLED = openai_model_cfg.get("enabled", True)
+        self.OPENAI_API_KEY = openai_model_cfg.get("api_key", "")
+        self.OPENAI_MODEL = openai_model_cfg.get("model", "openai-gpt-4")
+        self.OPENAI_BATCH_SIZE = openai_model_cfg.get("batch_size", 16)
+        self.OPENAI_N_PREDICT = openai_model_cfg.get("n_predict", 20)
+        self.OPENAI_TEMP = openai_model_cfg.get("temp", 0.5)
+
+        claude_model_cfg = self.toml_config.get("claude", {})
+        self.CLAUDE_ENABLED = claude_model_cfg.get("enabled", True)
+        self.CLAUDE_API_KEY = claude_model_cfg.get("api_key", "")
+        self.CLAUDE_MODEL = claude_model_cfg.get("model", "claude-2")
+        self.CLAUDE_BATCH_SIZE = claude_model_cfg.get("batch_size", 16)
+        self.CLAUDE_N_PREDICT = claude_model_cfg.get("n_predict", 20)
+        self.CLAUDE_TEMP = claude_model_cfg.get("temp", 0.5)
+
         benchmark_cfg = self.toml_config.get("benchmark", {})
         self.BENCHMARK_FOLDER = benchmark_cfg.get("folder", "exports")
         self.BENCHMARK_OUTPUT = benchmark_cfg.get("output", "benchmark")
