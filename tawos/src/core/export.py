@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, text
 from config_loader import config
 from core.log import get_logger
 
-logger = get_logger("Converter")
+logger = get_logger("Export")
 
 
 def _export(query: str, file_name: str, engine, params=None):
