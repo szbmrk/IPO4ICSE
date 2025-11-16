@@ -29,7 +29,7 @@ def export_sql_to_csv():
                 """
             SELECT *
             FROM Issue
-            ORDER BY ID
+            ORDER BY RAND()
             LIMIT :limit_val
         """
             ),
@@ -42,7 +42,7 @@ def export_sql_to_csv():
                 """
             SELECT *
             FROM Issue
-            ORDER BY ID
+            ORDER BY RAND()
         """
             ),
             engine,
