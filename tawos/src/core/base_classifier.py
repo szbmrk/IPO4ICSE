@@ -1,5 +1,3 @@
-import os
-import pandas as pd
 import asyncio
 import aiohttp
 from abc import ABC, abstractmethod
@@ -45,17 +43,16 @@ def extract_json(text: str) -> int:
 
 
 class BaseClassifier(ABC):
-    def __init__(self, model_name, batch_size, temp_file):
+    def __init__(self, model_name, batch_size):
         self.model_name = model_name
         self.batch_size = batch_size
-        self.temp_file = temp_file
 
     @abstractmethod
-    async def _get_model_name(self):
+    async def _get_model_name(self) -> str:
         pass
 
     @abstractmethod
-    async def _classify_single(self, session, title, desc):
+    async def _classify_single(self, session, title, desc) -> int | None:
         pass
 
     async def _classify_batch(self, rows):
@@ -77,7 +74,7 @@ class BaseClassifier(ABC):
 
     async def _classify_dataframe(self, df):
         logger = get_logger(self.model_name)
-        points_column = f"model_{self.model_name}_validity_point"
+        points_column = f"{self.model_name}_validity_point"
 
         total_rows = len(df)
         logger.info(f"Classification started for {total_rows} rows")
@@ -87,25 +84,9 @@ class BaseClassifier(ABC):
 
         results = []
 
-        if os.path.exists(self.temp_file):
-            logger.info(f"Found existing temp file at {self.temp_file}, loading...")
-            temp_df = pd.read_csv(self.temp_file, sep=";")
-            processed_indices = set(temp_df.index)
-            results = temp_df[points_column].tolist()
-            logger.info(f"Loaded {len(processed_indices)} previously processed rows")
-        else:
-            logger.info("No temp file found, starting fresh.")
-            processed_indices = set()
-
         num_batches = (total_rows + self.batch_size - 1) // self.batch_size
 
         for batch_idx, i in enumerate(range(0, total_rows, self.batch_size), start=1):
-            if i in processed_indices:
-                logger.info(
-                    f"Batch {batch_idx}/{num_batches} starting at index {i} already processed"
-                )
-                continue
-
             end_index = min(i + self.batch_size, total_rows)
 
             batch = rows[i:end_index]
@@ -113,8 +94,6 @@ class BaseClassifier(ABC):
 
             results.extend(batch_results)
 
-            temp_df = pd.DataFrame({points_column: results})
-            temp_df.to_csv(self.temp_file, sep=";", index=False)
             logger.info(f"Batch {batch_idx}/{num_batches} completed")
 
         logger.info(f"Classification finished for all {total_rows} rows")

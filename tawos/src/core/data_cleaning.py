@@ -2,9 +2,6 @@ import asyncio
 import os
 import pandas as pd
 
-from core.gemini_classifier import GeminiClassifier
-from core.openai_classifier import OpenAIClassifier
-from core.claude_classifier import ClaudeClassifier
 from core.local_model_classifier import LocalModelClassifier
 from core.log import get_logger
 from config_loader import config
@@ -49,36 +46,6 @@ def remove_unnecessery_columns():
 
 def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     logger.info("Starting classifying by local model")
-    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
-    df = pd.read_csv(issues_path, sep=";")
-    points, column_name = asyncio.run(classifier.classify(df))
-    df[column_name] = points
-    df.to_csv(issues_path, sep=";", index=False)
-    logger.info(f"Saved modified file as '{issues_path}'")
-
-
-def add_points_generated_by_gemini(classifier: GeminiClassifier):
-    logger.info("Starting classifying by gemini")
-    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
-    df = pd.read_csv(issues_path, sep=";")
-    points, column_name = asyncio.run(classifier.classify(df))
-    df[column_name] = points
-    df.to_csv(issues_path, sep=";", index=False)
-    logger.info(f"Saved modified file as '{issues_path}'")
-
-
-def add_points_generated_by_openai(classifier: OpenAIClassifier):
-    logger.info("Starting classifying by openai")
-    issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
-    df = pd.read_csv(issues_path, sep=";")
-    points, column_name = asyncio.run(classifier.classify(df))
-    df[column_name] = points
-    df.to_csv(issues_path, sep=";", index=False)
-    logger.info(f"Saved modified file as '{issues_path}'")
-
-
-def add_points_generated_by_claude(classifier: ClaudeClassifier):
-    logger.info("Starting classifying by claude")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
     points, column_name = asyncio.run(classifier.classify(df))
