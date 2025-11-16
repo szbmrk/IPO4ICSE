@@ -60,7 +60,7 @@ def _model_comparison_boxplot(df, point_columns):
     )
     model_names = _get_model_names(point_columns)
 
-    fig, ax = plt.subplots(figsize=(12, 6))
+    _, ax = plt.subplots(figsize=(12, 6))
 
     data_to_plot = [df_valid[col].dropna() for col in point_columns]
 
@@ -109,7 +109,7 @@ def _agreement_heatmap(df, point_columns):
 
     for i in range(len(model_names)):
         for j in range(len(model_names)):
-            text = ax.text(
+            ax.text(
                 j,
                 i,
                 f"{corr_matrix.iloc[i, j]:.2f}",
@@ -126,50 +126,56 @@ def _agreement_heatmap(df, point_columns):
 
 
 def _failure_analysis_detailed(df, point_columns):
-    """Detailed failure analysis"""
     logger.info("Creating detailed failure analysis")
+
+    all_types = df["Type"].dropna().unique()
+    logger.info(f"Found task types: {', '.join(all_types)}")
 
     failure_data = []
     for col in point_columns:
         col_numeric = pd.to_numeric(df[col], errors="coerce")
         failures = df[col_numeric == -1]
-        failure_data.append(
-            {
-                "Model": col.replace("_validity_point", ""),
-                "Total Failures": len(failures),
-                "Failure Rate (%)": (len(failures) / len(df)) * 100,
-                "Bug Failures": len(failures[failures["Type"] == "Bug"]),
-                "Feature Failures": len(failures[failures["Type"] == "Feature"]),
-                "TechDebt Failures": len(failures[failures["Type"] == "Tech Debt"]),
-            }
-        )
+
+        model_dict = {
+            "Model": col.replace("_validity_point", ""),
+            "Total Failures": len(failures),
+            "Failure Rate (%)": (len(failures) / len(df)) * 100,
+        }
+
+        for task_type in all_types:
+            model_dict[f"{task_type} Failures"] = len(
+                failures[failures["Type"] == task_type]
+            )
+
+        failure_data.append(model_dict)
 
     failure_df = pd.DataFrame(failure_data)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.barh(failure_df["Model"], failure_df["Failure Rate (%)"], color="coral")
+    ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
+    ax.set_title("Classification Failure Rate by Model", fontsize=13, fontweight="bold")
+    ax.grid(axis="x", alpha=0.3)
+    ax.set_xlim(0, 100)
+    _save_plot("failure_rate_by_model.png")
 
-    # Failure rate by model
-    ax1.barh(failure_df["Model"], failure_df["Failure Rate (%)"], color="coral")
-    ax1.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold")
-    ax1.set_ylabel("Model", fontsize=12, fontweight="bold")
-    ax1.set_title(
-        "Classification Failure Rate by Model", fontsize=13, fontweight="bold"
-    )
-    ax1.grid(axis="x", alpha=0.3)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    type_columns = [col for col in failure_df.columns if col.endswith(" Failures")]
+    failure_by_type = failure_df[["Model"] + type_columns].set_index("Model")
 
-    # Failure by task type
-    failure_by_type = failure_df[
-        ["Model", "Bug Failures", "Feature Failures", "TechDebt Failures"]
-    ].set_index("Model")
-    failure_by_type.plot(kind="bar", stacked=True, ax=ax2)
-    ax2.set_xlabel("Model", fontsize=12, fontweight="bold")
-    ax2.set_ylabel("Number of Failures", fontsize=12, fontweight="bold")
-    ax2.set_title("Failure Distribution by Task Type", fontsize=13, fontweight="bold")
-    ax2.legend(title="Task Type", bbox_to_anchor=(1.05, 1))
-    ax2.grid(axis="y", alpha=0.3)
+    failure_by_type.columns = [
+        col.replace(" Failures", "") for col in failure_by_type.columns
+    ]
+
+    failure_by_type.plot(kind="bar", stacked=True, ax=ax)
+    ax.set_xlabel("Model", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Number of Failures", fontsize=12, fontweight="bold")
+    ax.set_title("Failure Distribution by Task Type", fontsize=13, fontweight="bold")
+    ax.legend(title="Task Type", bbox_to_anchor=(1.05, 1))
+    ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=45, ha="right")
-
-    _save_plot("failure_analysis_detailed.png")
+    _save_plot("failure_distribution_by_type.png")
 
     failure_path = os.path.join(OUTPUT_DIR, "failure_summary.csv")
     failure_df.to_csv(failure_path, index=False)
@@ -208,7 +214,7 @@ def _pairwise_difference_analysis(df, point_columns):
     for i in range(len(model_names)):
         for j in range(len(model_names)):
             if i != j:
-                text = ax.text(
+                ax.text(
                     j,
                     i,
                     f"{diff_matrix[i, j]:.1f}",
@@ -224,6 +230,42 @@ def _pairwise_difference_analysis(df, point_columns):
     plt.colorbar(im, ax=ax, label="Mean Absolute Difference")
 
     _save_plot("pairwise_difference_heatmap.png")
+
+
+def _spam_detected_analysis(df, point_columns):
+    logger.info("Analyzing spam detection rates")
+
+    spam_data = []
+    for col in point_columns:
+        col_numeric = pd.to_numeric(df[col], errors="coerce")
+        spam_detected = df[(col_numeric < 20) & (col_numeric != -1)]
+
+        model_dict = {
+            "Model": col.replace("_validity_point", ""),
+            "Total Spam Detected": len(spam_detected),
+            "Spam Detection Rate (%)": (len(spam_detected) / len(df)) * 100,
+        }
+
+        spam_data.append(model_dict)
+
+    spam_df = pd.DataFrame(spam_data)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.barh(spam_df["Model"], spam_df["Spam Detection Rate (%)"], color="skyblue")
+    ax.set_xlabel("Spam Detection Rate (%)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
+    ax.set_title(
+        "Spam Detected by Model (validity_point < 20)",
+        fontsize=13,
+        fontweight="bold",
+    )
+    ax.grid(axis="x", alpha=0.3)
+    ax.set_xlim(0, 100)
+    _save_plot("spam_detection_rate_by_model.png")
+
+    spam_path = os.path.join(OUTPUT_DIR, "spam_detection_summary.csv")
+    spam_df.to_csv(spam_path, index=False)
+    logger.info(f"Saved spam detection summary to {spam_path}")
 
 
 def run_benchmark():
@@ -242,6 +284,7 @@ def run_benchmark():
     _agreement_heatmap(df, point_columns)
     _failure_analysis_detailed(df, point_columns)
     _pairwise_difference_analysis(df, point_columns)
+    _spam_detected_analysis(df, point_columns)
 
     logger.info("Benchmarking complete")
     logger.info(f"All plots and summaries saved to: {OUTPUT_DIR}/")

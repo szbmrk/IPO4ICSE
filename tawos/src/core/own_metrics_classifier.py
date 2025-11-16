@@ -244,7 +244,7 @@ def _calculate_technical_content_score(title, description):  # 0-20 points
 def _detect_spam_or_invalid(title, description):
     text = (title + " " + description).lower()
 
-    if len(title.strip()) < 5 and len(description.strip()) < 10:
+    if len(title.strip()) < 5 or len(description.strip()) < 10:
         return True
 
     spam_patterns = [

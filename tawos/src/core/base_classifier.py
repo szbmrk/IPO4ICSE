@@ -74,7 +74,8 @@ class BaseClassifier(ABC):
 
     async def _classify_dataframe(self, df):
         logger = get_logger(self.model_name)
-        points_column = f"{self.model_name}_validity_point"
+        model_name = await self._get_model_name()
+        points_column = f"{model_name}_validity_point"
 
         total_rows = len(df)
         logger.info(f"Classification started for {total_rows} rows")
