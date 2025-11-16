@@ -2,8 +2,10 @@ import argparse
 from core.benchmark import run_benchmark
 from core.converter import export_sql_to_csv
 from core.data_cleaning import (
+    add_points_generated_by_claude,
     add_points_generated_by_local_model,
     add_points_generated_by_gemini,
+    add_points_generated_by_openai,
     add_points_generated_by_own_metrics,
     remove_unnecessery_columns,
 )
@@ -48,9 +50,11 @@ def main():
 
     if config.OPENAI_ENABLED:
         openai_classifier = OpenAIClassifier()
+        add_points_generated_by_openai(openai_classifier)
 
     if config.CLAUDE_ENABLED:
         claude_classifier = ClaudeClassifier()
+        add_points_generated_by_claude(claude_classifier)
 
     add_points_generated_by_own_metrics()
 

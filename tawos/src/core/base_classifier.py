@@ -9,9 +9,6 @@ import re
 
 
 def extract_json(text: str) -> int:
-    if not isinstance(text, (str, bytes, bytearray)):
-        return -1
-
     try:
         s = text.decode() if isinstance(text, (bytes, bytearray)) else text
     except Exception:
@@ -70,17 +67,10 @@ class BaseClassifier(ABC):
 
             processed = []
             for r in results:
-                # if subclass already returned an int (pre-extracted), accept it if valid
                 if isinstance(r, int):
                     processed.append(r if 0 <= r <= 100 else -1)
                     continue
 
-                # if subclass returned a string (raw AI text) -> extract
-                if isinstance(r, (str, bytes, bytearray)):
-                    processed.append(extract_json(r))
-                    continue
-
-                # anything else (None or unexpected) -> -1
                 processed.append(-1)
 
             return processed
