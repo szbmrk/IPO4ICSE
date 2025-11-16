@@ -8,12 +8,12 @@ from core.base_classifier import BaseClassifier, extract_json
 class LocalModelClassifier(BaseClassifier):
     def __init__(self):
         super().__init__(
-            model_name=config.LOCAL_MODEL_URL,
+            model_name="LocalModel",
             batch_size=config.LOCAL_MODEL_BATCH_SIZE,
         )
 
     async def _get_model_name(self) -> str:
-        url = self.model_name + "/v1/models"
+        url = config.LOCAL_MODEL_URL + "/v1/models"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 try:
@@ -45,12 +45,12 @@ Respond only with JSON.
             "temperature": config.LOCAL_MODEL_TEMP,
         }
 
-        try:
-            async with session.post(
-                f"{self.model_name}/completions", json=payload
-            ) as resp:
+        async with session.post(
+            f"{config.LOCAL_MODEL_URL}/completions", json=payload
+        ) as resp:
+            try:
                 resp_json = await resp.json()
                 raw = resp_json.get("content", "")
                 return extract_json(raw)
-        except Exception:
-            return None
+            except:
+                return None
