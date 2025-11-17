@@ -5,6 +5,7 @@ from config_loader import config
 import matplotlib.pyplot as plt
 import seaborn as sns
 from core.log import get_logger
+from matplotlib.colors import LinearSegmentedColormap
 
 logger = get_logger("Benchmark")
 OUTPUT_DIR = config.BENCHMARK_OUTPUT
@@ -182,54 +183,54 @@ def _failure_analysis_detailed(df, point_columns):
     logger.info(f"Saved failure summary to {failure_path}")
 
 
-def _pairwise_difference_analysis(df, point_columns):
-    logger.info("Analyzing pairwise model differences")
+def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
+    logger.info("Creating spam agreement heatmap")
 
     df_valid = (
         df[point_columns].apply(pd.to_numeric, errors="coerce").replace(-1, np.nan)
     )
     model_names = _get_model_names(point_columns)
 
-    n_models = len(point_columns)
-    diff_matrix = np.zeros((n_models, n_models))
+    spam_matrix = (df_valid < spam_threshold).astype(float)
 
-    for i, col1 in enumerate(point_columns):
-        for j, col2 in enumerate(point_columns):
-            if i != j:
-                valid_both = df_valid[[col1, col2]].dropna()
-                if len(valid_both) > 0:
-                    diff_matrix[i, j] = np.mean(
-                        np.abs(valid_both[col1] - valid_both[col2])
-                    )
+    n_models = len(point_columns)
+    agreement = np.zeros((n_models, n_models))
+
+    for i in range(n_models):
+        for j in range(n_models):
+            col_i = spam_matrix.iloc[:, i]
+            col_j = spam_matrix.iloc[:, j]
+            both_valid = ~(col_i.isna() | col_j.isna())
+
+            if both_valid.sum() == 0:
+                agreement[i, j] = np.nan
+            else:
+                agreement[i, j] = (
+                    col_i.loc[both_valid] == col_j.loc[both_valid]
+                ).mean()
+
+    # ★ Better colors: red → yellow → green
+    colors = ["#ff4d4d", "#ffec99", "#4caf50"]
+    cmap = LinearSegmentedColormap.from_list("agreement", colors)
 
     fig, ax = plt.subplots(figsize=(10, 8))
+    im = ax.imshow(agreement, cmap=cmap, vmin=0, vmax=1)
 
-    im = ax.imshow(diff_matrix, cmap="YlOrRd", aspect="auto")
-
-    ax.set_xticks(np.arange(len(model_names)))
-    ax.set_yticks(np.arange(len(model_names)))
+    ax.set_xticks(np.arange(n_models))
+    ax.set_yticks(np.arange(n_models))
     ax.set_xticklabels(model_names, rotation=45, ha="right")
     ax.set_yticklabels(model_names)
 
-    for i in range(len(model_names)):
-        for j in range(len(model_names)):
-            if i != j:
-                ax.text(
-                    j,
-                    i,
-                    f"{diff_matrix[i, j]:.1f}",
-                    ha="center",
-                    va="center",
-                    color="black",
-                    fontsize=9,
-                )
+    for i in range(n_models):
+        for j in range(n_models):
+            ax.text(
+                j, i, f"{agreement[i, j]:.2f}", ha="center", va="center", color="black"
+            )
 
-    ax.set_title(
-        "Mean Absolute Difference Between Models", fontsize=14, fontweight="bold"
-    )
-    plt.colorbar(im, ax=ax, label="Mean Absolute Difference")
+    ax.set_title("Inter-Model Spam Agreement", fontsize=14, fontweight="bold")
+    plt.colorbar(im, ax=ax, label="Spam Agreement Rate")
 
-    _save_plot("pairwise_difference_heatmap.png")
+    _save_plot("model_spam_agreement_heatmap.png")
 
 
 def _spam_detected_analysis(df, point_columns):
@@ -283,7 +284,7 @@ def run_benchmark():
     _model_comparison_boxplot(df, point_columns)
     _agreement_heatmap(df, point_columns)
     _failure_analysis_detailed(df, point_columns)
-    _pairwise_difference_analysis(df, point_columns)
+    _spam_agreement_heatmap(df, point_columns, 20)
     _spam_detected_analysis(df, point_columns)
 
     logger.info("Benchmarking complete")

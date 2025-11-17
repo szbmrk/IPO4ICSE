@@ -12,6 +12,7 @@ wait_for_server() {
     echo "Waiting for llama-server to be ready..."
     while [ $attempt -lt $max_attempts ]; do
         if curl -s "http://localhost:$SERVER_PORT/health" > /dev/null 2>&1; then
+            sleep 20
             echo "Server is ready!"
             return 0
         fi
