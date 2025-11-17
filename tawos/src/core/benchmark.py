@@ -89,43 +89,6 @@ def _model_comparison_boxplot(df, point_columns):
     _save_plot("model_comparison_boxplot.png")
 
 
-def _agreement_heatmap(df, point_columns):
-    logger.info("Creating agreement heatmap")
-
-    df_valid = (
-        df[point_columns].apply(pd.to_numeric, errors="coerce").replace(-1, np.nan)
-    )
-    model_names = _get_model_names(point_columns)
-
-    corr_matrix = df_valid.corr()
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-
-    im = ax.imshow(corr_matrix, cmap="RdYlGn", aspect="auto", vmin=0, vmax=1)
-
-    ax.set_xticks(np.arange(len(model_names)))
-    ax.set_yticks(np.arange(len(model_names)))
-    ax.set_xticklabels(model_names, rotation=45, ha="right")
-    ax.set_yticklabels(model_names)
-
-    for i in range(len(model_names)):
-        for j in range(len(model_names)):
-            ax.text(
-                j,
-                i,
-                f"{corr_matrix.iloc[i, j]:.2f}",
-                ha="center",
-                va="center",
-                color="black",
-                fontsize=9,
-            )
-
-    ax.set_title("Inter-Model Agreement (Correlation)", fontsize=14, fontweight="bold")
-    plt.colorbar(im, ax=ax, label="Correlation Coefficient")
-
-    _save_plot("model_agreement_heatmap.png")
-
-
 def _failure_analysis_detailed(df, point_columns):
     logger.info("Creating detailed failure analysis")
 
@@ -152,7 +115,7 @@ def _failure_analysis_detailed(df, point_columns):
 
     failure_df = pd.DataFrame(failure_data)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     ax.barh(failure_df["Model"], failure_df["Failure Rate (%)"], color="coral")
     ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold")
     ax.set_ylabel("Model", fontsize=12, fontweight="bold")
@@ -160,23 +123,6 @@ def _failure_analysis_detailed(df, point_columns):
     ax.grid(axis="x", alpha=0.3)
     ax.set_xlim(0, 100)
     _save_plot("failure_rate_by_model.png")
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    type_columns = [col for col in failure_df.columns if col.endswith(" Failures")]
-    failure_by_type = failure_df[["Model"] + type_columns].set_index("Model")
-
-    failure_by_type.columns = [
-        col.replace(" Failures", "") for col in failure_by_type.columns
-    ]
-
-    failure_by_type.plot(kind="bar", stacked=True, ax=ax)
-    ax.set_xlabel("Model", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Number of Failures", fontsize=12, fontweight="bold")
-    ax.set_title("Failure Distribution by Task Type", fontsize=13, fontweight="bold")
-    ax.legend(title="Task Type", bbox_to_anchor=(1.05, 1))
-    ax.grid(axis="y", alpha=0.3)
-    plt.xticks(rotation=45, ha="right")
-    _save_plot("failure_distribution_by_type.png")
 
     failure_path = os.path.join(OUTPUT_DIR, "failure_summary.csv")
     failure_df.to_csv(failure_path, index=False)
@@ -212,7 +158,7 @@ def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
     colors = ["#ff4d4d", "#ffec99", "#4caf50"]
     cmap = LinearSegmentedColormap.from_list("agreement", colors)
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    _, ax = plt.subplots(figsize=(10, 8))
     im = ax.imshow(agreement, cmap=cmap, vmin=0, vmax=1)
 
     ax.set_xticks(np.arange(n_models))
@@ -250,7 +196,7 @@ def _spam_detected_analysis(df, point_columns):
 
     spam_df = pd.DataFrame(spam_data)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     ax.barh(spam_df["Model"], spam_df["Spam Detection Rate (%)"], color="skyblue")
     ax.set_xlabel("Spam Detection Rate (%)", fontsize=12, fontweight="bold")
     ax.set_ylabel("Model", fontsize=12, fontweight="bold")
@@ -323,7 +269,7 @@ def _model_execution_time_analysis():
 
     timing_df = pd.DataFrame(timing_data)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     colors = sns.color_palette("husl", len(timing_df))
     ax.barh(timing_df["Model"], timing_df["Total Time (s)"], color=colors)
     ax.set_xlabel("Total Execution Time (seconds)", fontsize=12, fontweight="bold")
@@ -336,7 +282,7 @@ def _model_execution_time_analysis():
 
     _save_plot("model_execution_time_total.png")
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    _, ax = plt.subplots(figsize=(10, 6))
     ax.barh(timing_df["Model"], timing_df["Average Time per Item (ms)"], color=colors)
     ax.set_xlabel(
         "Average Time per Item (milliseconds)", fontsize=12, fontweight="bold"
@@ -370,7 +316,6 @@ def run_benchmark():
 
     _statistical_summary(df, point_columns)
     _model_comparison_boxplot(df, point_columns)
-    _agreement_heatmap(df, point_columns)
     _failure_analysis_detailed(df, point_columns)
     _spam_agreement_heatmap(df, point_columns, 20)
     _spam_detected_analysis(df, point_columns)
