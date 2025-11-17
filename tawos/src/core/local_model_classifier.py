@@ -14,16 +14,16 @@ class LocalModelClassifier(BaseClassifier):
 
     async def _get_model_name(self) -> str:
         url = config.LOCAL_MODEL_URL + "/v1/models"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                try:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
                     data = await resp.json()
                     full_path = data["models"][0]["name"]
                     filename = os.path.basename(full_path)
                     name = os.path.splitext(filename)[0]
                     return name.replace(".gguf", "")
-                except Exception:
-                    return "unkown_model"
+        except Exception:
+            return "unkown_model"
 
     async def _classify_single(self, session, title, desc) -> int | None:
         prompt = f"""
@@ -45,12 +45,12 @@ Respond only with JSON.
             "temperature": config.LOCAL_MODEL_TEMP,
         }
 
-        async with session.post(
-            f"{config.LOCAL_MODEL_URL}/completions", json=payload
-        ) as resp:
-            try:
+        try:
+            async with session.post(
+                f"{config.LOCAL_MODEL_URL}/completions", json=payload
+            ) as resp:
                 resp_json = await resp.json()
                 raw = resp_json.get("content", "")
                 return extract_json(raw)
-            except:
-                return None
+        except:
+            return None
