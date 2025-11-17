@@ -14,23 +14,32 @@ from core.local_model_classifier import LocalModelClassifier
 logger = get_logger("main")
 
 
+def export():
+    confirm = input(
+        "Are you sure you want to export? You could lose your current files. (y/n) "
+    )
+    if confirm == "y":
+        export_sql_to_csv()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--benchmark", action="store_true", help="Run the benchmark pipeline"
     )
+    parser.add_argument("--export", action="store_true", help="Only run the exporting")
     args = parser.parse_args()
 
     if args.benchmark:
         run_benchmark()
         exit(0)
 
+    if args.export:
+        export()
+        exit(0)
+
     if config.EXPORT_ENABLED:
-        confirm = input(
-            "Are you sure you want to export? You could lose your current files. (y/n) "
-        )
-        if confirm == "y":
-            export_sql_to_csv()
+        export()
 
     remove_unnecessery_columns()
 

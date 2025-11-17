@@ -1,5 +1,6 @@
 import aiohttp
 import os
+import time
 
 from config_loader import config
 from core.base_classifier import BaseClassifier, extract_json
@@ -10,6 +11,7 @@ class LocalModelClassifier(BaseClassifier):
         super().__init__(
             model_name="LocalModel",
             batch_size=config.LOCAL_MODEL_BATCH_SIZE,
+            timing_data=[],
         )
 
     async def _get_model_name(self) -> str:
@@ -46,11 +48,17 @@ Respond only with JSON.
         }
 
         try:
+            start_time = time.time()
             async with session.post(
                 f"{config.LOCAL_MODEL_URL}/completions", json=payload
             ) as resp:
                 resp_json = await resp.json()
                 raw = resp_json.get("content", "")
+                elapsed_time = time.time() - start_time
+                self.timing_data.append(elapsed_time)
                 return extract_json(raw)
-        except:
+        except Exception:
             return None
+
+    def get_timing_data(self):
+        return self.timing_data

@@ -16,6 +16,7 @@ def _export(query: str, file_name: str, engine, params=None):
 
 def export_sql_to_csv():
     os.makedirs(config.EXPORT_FOLDER, exist_ok=True)
+    os.makedirs(f"{config.EXPORT_FOLDER}/timing", exist_ok=True)
 
     engine = create_engine(
         f"mysql+pymysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}/{config.DB_NAME}"

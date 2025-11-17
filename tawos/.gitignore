@@ -6,4 +6,5 @@ config.toml
 *.log
 exports*
 temp*
-benchmark
+benchmark*
+!src/core/benchmark.py

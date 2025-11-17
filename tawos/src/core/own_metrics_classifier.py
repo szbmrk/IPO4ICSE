@@ -1,6 +1,9 @@
+import os
 import pandas as pd
 import re
+import time
 from core.log import get_logger
+from config_loader import config
 
 logger = get_logger("OwnMetric")
 
@@ -130,8 +133,6 @@ def _calculate_professionalism_score(title, description):  # 0-25 points
         r"\bregret\b.*\bthis\b",
         r"\bpay for this\b",
         r"\bget you\b",
-        r"\bwatch out\b",
-        r"\byou're dead\b",
         r"\bpathetic\b",
         r"\bjoke\b",
         r"\blaughing at you\b",
@@ -286,7 +287,15 @@ def classify_by_own_metrics(df: pd.DataFrame) -> list[int]:
     logger.info(f"Local metric classification started for {total_rows} rows")
 
     rows = list(df[["Title", "Description"]].itertuples(index=False, name=None))
-    results = [_calculate_row_points(title, description) for title, description in rows]
+    timing_data = []
+
+    results = []
+    for title, description in rows:
+        start_time = time.time()
+        score = _calculate_row_points(title, description)
+        elapsed_time = time.time() - start_time
+        timing_data.append(elapsed_time)
+        results.append(score)
 
     avg_score = sum(results) / len(results) if results else 0
     spam_count = sum(1 for r in results if r < 20)
@@ -294,5 +303,15 @@ def classify_by_own_metrics(df: pd.DataFrame) -> list[int]:
     logger.info(f"Local metric classification finished for {total_rows} rows")
     logger.info(f"Average validity score: {avg_score:.2f}")
     logger.info(f"Spam/invalid issues detected: {spam_count}")
+
+    # Save timing data to a file
+    timing_df = pd.DataFrame(
+        {"Row": range(len(timing_data)), "Timing (s)": timing_data}
+    )
+    timing_file_path = os.path.join(
+        f"{config.EXPORT_FOLDER}/timing", "own_metrics_timing.csv"
+    )
+    timing_df.to_csv(timing_file_path, index=False)
+    logger.info(f"Saved timing data to {timing_file_path}")
 
     return results

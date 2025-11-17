@@ -209,7 +209,6 @@ def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
                     col_i.loc[both_valid] == col_j.loc[both_valid]
                 ).mean()
 
-    # ★ Better colors: red → yellow → green
     colors = ["#ff4d4d", "#ffec99", "#4caf50"]
     cmap = LinearSegmentedColormap.from_list("agreement", colors)
 
@@ -269,6 +268,95 @@ def _spam_detected_analysis(df, point_columns):
     logger.info(f"Saved spam detection summary to {spam_path}")
 
 
+def _model_execution_time_analysis():
+    logger.info("Creating model execution time analysis")
+
+    timing_data = []
+    export_folder = config.BENCHMARK_FOLDER + "/timing"
+
+    own_metrics_timing_path = os.path.join(export_folder, "own_metrics_timing.csv")
+    if os.path.exists(own_metrics_timing_path):
+        df_timing = pd.read_csv(own_metrics_timing_path)
+        total_time = df_timing["Timing (s)"].sum()
+        avg_time = df_timing["Timing (s)"].mean()
+        timing_data.append(
+            {
+                "Model": "OwnMetrics",
+                "Total Time (s)": total_time,
+                "Average Time per Item (ms)": avg_time * 1000,
+                "Items Processed": len(df_timing),
+            }
+        )
+        logger.info(f"Found timing data for OwnMetrics: {len(df_timing)} items")
+
+    for filename in os.listdir(export_folder):
+        if "timing" in filename.lower() and filename.endswith(".csv"):
+            if filename == "own_metrics_timing.csv":
+                continue
+
+            filepath = os.path.join(export_folder, filename)
+            try:
+                df_timing = pd.read_csv(filepath)
+                if "Timing (s)" in df_timing.columns:
+                    total_time = df_timing["Timing (s)"].sum()
+                    avg_time = df_timing["Timing (s)"].mean()
+                    model_name = (
+                        filename.replace("_timing.csv", "").replace("_", " ").title()
+                    )
+                    timing_data.append(
+                        {
+                            "Model": model_name,
+                            "Total Time (s)": total_time,
+                            "Average Time per Item (ms)": avg_time * 1000,
+                            "Items Processed": len(df_timing),
+                        }
+                    )
+                    logger.info(
+                        f"Found timing data for {model_name}: {len(df_timing)} items"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not read timing file {filename}: {e}")
+
+    if not timing_data:
+        logger.warning("No timing data found. Skipping execution time analysis.")
+        return
+
+    timing_df = pd.DataFrame(timing_data)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = sns.color_palette("husl", len(timing_df))
+    ax.barh(timing_df["Model"], timing_df["Total Time (s)"], color=colors)
+    ax.set_xlabel("Total Execution Time (seconds)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
+    ax.set_title("Total Execution Time by Model", fontsize=13, fontweight="bold")
+    ax.grid(axis="x", alpha=0.3)
+
+    for i, v in enumerate(timing_df["Total Time (s)"]):
+        ax.text(v, i, f" {v:.2f}s", va="center", fontsize=10)
+
+    _save_plot("model_execution_time_total.png")
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.barh(timing_df["Model"], timing_df["Average Time per Item (ms)"], color=colors)
+    ax.set_xlabel(
+        "Average Time per Item (milliseconds)", fontsize=12, fontweight="bold"
+    )
+    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
+    ax.set_title(
+        "Average Execution Time per Item by Model", fontsize=13, fontweight="bold"
+    )
+    ax.grid(axis="x", alpha=0.3)
+
+    for i, v in enumerate(timing_df["Average Time per Item (ms)"]):
+        ax.text(v, i, f" {v:.2f}ms", va="center", fontsize=10)
+
+    _save_plot("model_execution_time_average.png")
+
+    timing_summary_path = os.path.join(OUTPUT_DIR, "execution_time_summary.csv")
+    timing_df.to_csv(timing_summary_path, index=False)
+    logger.info(f"Saved execution time summary to {timing_summary_path}")
+
+
 def run_benchmark():
     logger.info("Running benchmarks")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -286,6 +374,7 @@ def run_benchmark():
     _failure_analysis_detailed(df, point_columns)
     _spam_agreement_heatmap(df, point_columns, 20)
     _spam_detected_analysis(df, point_columns)
+    _model_execution_time_analysis()
 
     logger.info("Benchmarking complete")
     logger.info(f"All plots and summaries saved to: {OUTPUT_DIR}/")

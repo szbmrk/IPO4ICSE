@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from core.log import get_logger
 import json
 import re
+import pandas as pd
+import os
+from config_loader import config
 
 
 def extract_json(text: str) -> int:
@@ -43,9 +46,10 @@ def extract_json(text: str) -> int:
 
 
 class BaseClassifier(ABC):
-    def __init__(self, model_name, batch_size):
+    def __init__(self, model_name, batch_size, timing_data):
         self.model_name = model_name
         self.batch_size = batch_size
+        self.timing_data = timing_data
 
     @abstractmethod
     async def _get_model_name(self) -> str:
@@ -98,6 +102,16 @@ class BaseClassifier(ABC):
             logger.info(f"Batch {batch_idx}/{num_batches} completed")
 
         logger.info(f"Classification finished for all {total_rows} rows")
+
+        timing_df = pd.DataFrame(
+            {"Row": range(len(self.timing_data)), "Timing (s)": self.timing_data}
+        )
+        name = await self._get_model_name()
+        timing_file_path = os.path.join(
+            f"{config.EXPORT_FOLDER}/timing", f"{name}_timing.csv"
+        )
+        timing_df.to_csv(timing_file_path, index=False)
+        logger.info(f"Saved local model timing data to {timing_file_path}")
         return results, points_column
 
     async def classify(self, df):
