@@ -57,4 +57,8 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
     fi
 done
 
+if [[ "$1" == "--shutdown" ]]; then
+    shutdown now
+fi
+
 echo "All models processed."
