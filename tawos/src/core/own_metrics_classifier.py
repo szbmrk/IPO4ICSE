@@ -8,7 +8,7 @@ from config_loader import config
 logger = get_logger("OwnMetric")
 
 
-def _calculate_completeness_score(title, description):  # 0-30 points
+def _calculate_length_score(title, description):  # 0-30 points
     score = 0
 
     if len(title) >= 10:
@@ -16,6 +16,8 @@ def _calculate_completeness_score(title, description):  # 0-30 points
     if len(title) >= 20:
         score += 3
     if len(title) >= 30:
+        score += 2
+    if len(title) >= 40:
         score += 2
 
     if len(description) >= 50:
@@ -30,17 +32,30 @@ def _calculate_completeness_score(title, description):  # 0-30 points
     return min(score, 30)
 
 
-def _calculate_clarity_score(title, description):  # 0-25 points
-    score = 25
+def _calculate_structure_score(title, description):  # 0-10 points
+    score = 0
+
+    if "\n" in description:
+        score += 3
+    if description.count("\n") >= 3:
+        score += 3
+    if re.search(r"(- |• |\* )", description):
+        score += 4
+
+    return min(score, 10)
+
+
+def _calculate_style_score(title, description):  # 0-20 points
+    score = 20
 
     text = title + " " + description
 
     special_char_ratio = len(re.findall(r"[^a-zA-Z0-9\s.,!?;:()\-]", text)) / max(
         len(text), 1
     )
-    if special_char_ratio > 0.1:
+    if special_char_ratio > 0.3:
         score -= 10
-    elif special_char_ratio > 0.05:
+    elif special_char_ratio > 0.15:
         score -= 5
 
     if re.search(r"[!?\.]{3,}", text):
@@ -52,14 +67,11 @@ def _calculate_clarity_score(title, description):  # 0-25 points
     if caps_ratio > 0.5 and len(text) > 20:
         score -= 10
 
-    if re.search(r"(\n[-*•]\s|^\s*[-*•]\s|\n\d+[\.)]\s)", description, re.MULTILINE):
-        score += 5
-
     return max(score, 0)
 
 
-def _calculate_professionalism_score(title, description):  # 0-25 points
-    score = 25
+def _calculate_professionalism_score(title, description):  # 0-20 points
+    score = 20
 
     text = (title + " " + description).lower()
 
@@ -74,7 +86,7 @@ def _calculate_professionalism_score(title, description):  # 0-25 points
     ]
     for pattern in spam_severe:
         if re.search(pattern, text):
-            score -= 15
+            score -= 10
             break
 
     unprofessional = [
@@ -91,7 +103,7 @@ def _calculate_professionalism_score(title, description):  # 0-25 points
     ]
     for pattern in unprofessional:
         if re.search(pattern, text):
-            score -= 5
+            score -= 2
 
     aggressive = [
         r"\bstupid\b",
@@ -169,7 +181,7 @@ def _calculate_professionalism_score(title, description):  # 0-25 points
     ]
     for pattern in aggressive:
         if re.search(pattern, text):
-            score -= 8
+            score -= 5
             break
 
     placeholder_patterns = [
@@ -182,7 +194,7 @@ def _calculate_professionalism_score(title, description):  # 0-25 points
     ]
     for pattern in placeholder_patterns:
         if re.search(pattern, text):
-            score -= 10
+            score -= 5
 
     return max(score, 0)
 
@@ -272,12 +284,13 @@ def _calculate_row_points(title, description):
     if _detect_spam_or_invalid(title, description):
         return 0
 
-    completeness = _calculate_completeness_score(title, description)
-    clarity = _calculate_clarity_score(title, description)
+    length = _calculate_length_score(title, description)
+    structure = _calculate_structure_score(title, description)
+    style = _calculate_style_score(title, description)
     professionalism = _calculate_professionalism_score(title, description)
     technical = _calculate_technical_content_score(title, description)
 
-    total_score = completeness + clarity + professionalism + technical
+    total_score = length + structure + style + professionalism + technical
 
     return max(0, min(100, total_score))
 

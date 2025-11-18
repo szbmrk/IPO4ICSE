@@ -53,6 +53,16 @@ def _statistical_summary(df, point_columns):
     return summary
 
 
+def _format_time(value):
+    """Dynamically format time in seconds, milliseconds, or minutes."""
+    if value >= 60:
+        return f"{value / 60:.2f}m"
+    elif value >= 1:
+        return f"{value:.2f}s"
+    else:
+        return f"{value * 1000:.2f}ms"
+
+
 def _model_comparison_boxplot(df, point_columns):
     logger.info("Creating model comparison boxplot")
 
@@ -78,10 +88,11 @@ def _model_comparison_boxplot(df, point_columns):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
 
-    ax.set_xlabel("Model", fontsize=12, fontweight="bold")
     ax.set_ylabel("Validity Score", fontsize=12, fontweight="bold")
     ax.set_title(
-        "Distribution of Validity Scores by Model", fontsize=14, fontweight="bold"
+        f"Distribution of Validity Scores by Model (samples: {len(df)})",
+        fontsize=14,
+        fontweight="bold",
     )
     ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=45, ha="right")
@@ -91,9 +102,6 @@ def _model_comparison_boxplot(df, point_columns):
 
 def _failure_analysis_detailed(df, point_columns):
     logger.info("Creating detailed failure analysis")
-
-    all_types = df["Type"].dropna().unique()
-    logger.info(f"Found task types: {', '.join(all_types)}")
 
     failure_data = []
     for col in point_columns:
@@ -106,11 +114,6 @@ def _failure_analysis_detailed(df, point_columns):
             "Failure Rate (%)": (len(failures) / len(df)) * 100,
         }
 
-        for task_type in all_types:
-            model_dict[f"{task_type} Failures"] = len(
-                failures[failures["Type"] == task_type]
-            )
-
         failure_data.append(model_dict)
 
     failure_df = pd.DataFrame(failure_data)
@@ -118,15 +121,14 @@ def _failure_analysis_detailed(df, point_columns):
     _, ax = plt.subplots(figsize=(10, 6))
     ax.barh(failure_df["Model"], failure_df["Failure Rate (%)"], color="coral")
     ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
-    ax.set_title("Classification Failure Rate by Model", fontsize=13, fontweight="bold")
+    ax.set_title(
+        f"Classification Failure Rate by Model (samples: {len(df)})",
+        fontsize=13,
+        fontweight="bold",
+    )
     ax.grid(axis="x", alpha=0.3)
     ax.set_xlim(0, 100)
     _save_plot("failure_rate_by_model.png")
-
-    failure_path = os.path.join(OUTPUT_DIR, "failure_summary.csv")
-    failure_df.to_csv(failure_path, index=False)
-    logger.info(f"Saved failure summary to {failure_path}")
 
 
 def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
@@ -172,7 +174,11 @@ def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
                 j, i, f"{agreement[i, j]:.2f}", ha="center", va="center", color="black"
             )
 
-    ax.set_title("Inter-Model Spam Agreement", fontsize=14, fontweight="bold")
+    ax.set_title(
+        f"Inter-Model Spam Agreement (samples: {len(df)})",
+        fontsize=14,
+        fontweight="bold",
+    )
     plt.colorbar(im, ax=ax, label="Spam Agreement Rate")
 
     _save_plot("model_spam_agreement_heatmap.png")
@@ -197,9 +203,10 @@ def _spam_detected_analysis(df, point_columns):
     spam_df = pd.DataFrame(spam_data)
 
     _, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(spam_df["Model"], spam_df["Spam Detection Rate (%)"], color="skyblue")
+    bars = ax.barh(
+        spam_df["Model"], spam_df["Spam Detection Rate (%)"], color="skyblue"
+    )
     ax.set_xlabel("Spam Detection Rate (%)", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
     ax.set_title(
         "Spam Detected by Model (validity_point < 20)",
         fontsize=13,
@@ -207,11 +214,20 @@ def _spam_detected_analysis(df, point_columns):
     )
     ax.grid(axis="x", alpha=0.3)
     ax.set_xlim(0, 100)
-    _save_plot("spam_detection_rate_by_model.png")
 
-    spam_path = os.path.join(OUTPUT_DIR, "spam_detection_summary.csv")
-    spam_df.to_csv(spam_path, index=False)
-    logger.info(f"Saved spam detection summary to {spam_path}")
+    # Add labels with count and percentage
+    for i, (bar, count, rate) in enumerate(
+        zip(bars, spam_df["Total Spam Detected"], spam_df["Spam Detection Rate (%)"])
+    ):
+        ax.text(
+            rate + 1,
+            bar.get_y() + bar.get_height() / 2,
+            f"{count} ({rate:.1f}%)",
+            va="center",
+            fontsize=10,
+        )
+
+    _save_plot("spam_detection_rate_by_model.png")
 
 
 def _model_execution_time_analysis():
@@ -229,7 +245,7 @@ def _model_execution_time_analysis():
             {
                 "Model": "OwnMetrics",
                 "Total Time (s)": total_time,
-                "Average Time per Item (ms)": avg_time * 1000,
+                "Average Time per Item (s)": avg_time,
                 "Items Processed": len(df_timing),
             }
         )
@@ -253,7 +269,7 @@ def _model_execution_time_analysis():
                         {
                             "Model": model_name,
                             "Total Time (s)": total_time,
-                            "Average Time per Item (ms)": avg_time * 1000,
+                            "Average Time per Item (s)": avg_time,
                             "Items Processed": len(df_timing),
                         }
                     )
@@ -272,35 +288,33 @@ def _model_execution_time_analysis():
     _, ax = plt.subplots(figsize=(10, 6))
     colors = sns.color_palette("husl", len(timing_df))
     ax.barh(timing_df["Model"], timing_df["Total Time (s)"], color=colors)
-    ax.set_xlabel("Total Execution Time (seconds)", fontsize=12, fontweight="bold")
-    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
-    ax.set_title("Total Execution Time by Model", fontsize=13, fontweight="bold")
+    ax.set_xlabel("Total Execution Time (s)", fontsize=12, fontweight="bold")
+    ax.set_title(
+        f"Total Execution Time by Model (samples: {timing_df['Items Processed']})",
+        fontsize=13,
+        fontweight="bold",
+    )
     ax.grid(axis="x", alpha=0.3)
 
     for i, v in enumerate(timing_df["Total Time (s)"]):
-        ax.text(v, i, f" {v:.2f}s", va="center", fontsize=10)
+        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10)
 
     _save_plot("model_execution_time_total.png")
 
     _, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(timing_df["Model"], timing_df["Average Time per Item (ms)"], color=colors)
-    ax.set_xlabel(
-        "Average Time per Item (milliseconds)", fontsize=12, fontweight="bold"
-    )
-    ax.set_ylabel("Model", fontsize=12, fontweight="bold")
+    ax.barh(timing_df["Model"], timing_df["Average Time per Item (s)"], color=colors)
+    ax.set_xlabel("Average Time per Item (s)", fontsize=12, fontweight="bold")
     ax.set_title(
-        "Average Execution Time per Item by Model", fontsize=13, fontweight="bold"
+        f"Average Execution Time per Item by Model (samples: {timing_df['Items Processed']})",
+        fontsize=13,
+        fontweight="bold",
     )
     ax.grid(axis="x", alpha=0.3)
 
-    for i, v in enumerate(timing_df["Average Time per Item (ms)"]):
-        ax.text(v, i, f" {v:.2f}ms", va="center", fontsize=10)
+    for i, v in enumerate(timing_df["Average Time per Item (s)"]):
+        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10)
 
     _save_plot("model_execution_time_average.png")
-
-    timing_summary_path = os.path.join(OUTPUT_DIR, "execution_time_summary.csv")
-    timing_df.to_csv(timing_summary_path, index=False)
-    logger.info(f"Saved execution time summary to {timing_summary_path}")
 
 
 def run_benchmark():
