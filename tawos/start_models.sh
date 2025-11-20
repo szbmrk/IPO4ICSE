@@ -34,7 +34,7 @@ wait_for_process() {
 for MODEL_PATH in "$MODEL_DIR"/*; do
     if [[ -f "$MODEL_PATH" ]]; then
         echo "Starting model: $MODEL_PATH"
-        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl 99 --port "$SERVER_PORT" --log-disable &
+        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl 99 --port "$SERVER_PORT" &
         SERVER_PID=$!
         
         if wait_for_server; then

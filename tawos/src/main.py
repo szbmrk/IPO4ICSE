@@ -43,11 +43,11 @@ def main():
 
     remove_unnecessery_columns()
 
+    add_points_generated_by_own_metrics()
+
     if config.LOCAL_MODEL_ENABLED:
         local_classifier = LocalModelClassifier()
         add_points_generated_by_local_model(local_classifier)
-
-    add_points_generated_by_own_metrics()
 
 
 if __name__ == "__main__":
