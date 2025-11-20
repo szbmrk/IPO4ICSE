@@ -6,18 +6,38 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from core.log import get_logger
 from matplotlib.colors import LinearSegmentedColormap
+from collections import Counter
 
 logger = get_logger("Benchmark")
 OUTPUT_DIR = config.BENCHMARK_OUTPUT
 
-plt.style.use("seaborn-v0_8-paper")
+plt.style.use("dark_background")
 sns.set_palette("husl")
+
+DARK_BG = "#181825"
+DARK_GRID = "#1e1e2e"
+DARK_TEXT = "#cdd6f4"
+ACCENT_COLOR = "#89b4fa"
+
+
+def _configure_dark_plot(ax):
+    ax.set_facecolor(DARK_BG)
+    ax.figure.patch.set_facecolor(DARK_BG)
+    ax.tick_params(colors=DARK_TEXT)
+    ax.spines["bottom"].set_color(DARK_TEXT)
+    ax.spines["top"].set_color(DARK_TEXT)
+    ax.spines["left"].set_color(DARK_TEXT)
+    ax.spines["right"].set_color(DARK_TEXT)
+    ax.xaxis.label.set_color(DARK_TEXT)
+    ax.yaxis.label.set_color(DARK_TEXT)
+    ax.title.set_color(DARK_TEXT)
+    ax.grid(alpha=0.2, color=DARK_GRID)
 
 
 def _save_plot(filename):
     path = os.path.join(OUTPUT_DIR, filename)
     plt.tight_layout()
-    plt.savefig(path, dpi=300, bbox_inches="tight")
+    plt.savefig(path, dpi=300, bbox_inches="tight", facecolor=DARK_BG)
     plt.close()
     logger.info(f"Saved: {path}")
 
@@ -71,7 +91,9 @@ def _model_comparison_boxplot(df, point_columns):
     )
     model_names = _get_model_names(point_columns)
 
-    _, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 6))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
 
     data_to_plot = [df_valid[col].dropna() for col in point_columns]
 
@@ -81,21 +103,57 @@ def _model_comparison_boxplot(df, point_columns):
         patch_artist=True,
         showmeans=True,
         meanline=True,
+        medianprops=dict(color=ACCENT_COLOR, linewidth=2),
+        meanprops=dict(color="#ff6b6b", linewidth=2),
+        whiskerprops=dict(color=DARK_TEXT),
+        capprops=dict(color=DARK_TEXT),
+        flierprops=dict(markeredgecolor=DARK_TEXT, marker="o", markersize=4, alpha=0.5),
     )
 
     colors = sns.color_palette("husl", len(point_columns))
     for patch, color in zip(bp["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
+        patch.set_edgecolor(DARK_TEXT)
 
-    ax.set_ylabel("Validity Score", fontsize=12, fontweight="bold")
+    for i, data in enumerate(data_to_plot, 1):
+        median = data.median()
+        mean = data.mean()
+        q1 = data.quantile(0.25)
+        q3 = data.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        outliers = data[(data < lower_bound) | (data > upper_bound)]
+
+        label_text = f"Med: {median:.2f}\nMean: {mean:.2f}\nOutliers: {len(outliers)}"
+        ax.text(
+            i + 0.1,
+            (ax.get_ylim()[0] + ax.get_ylim()[1]) / 2 - 20,
+            label_text,
+            ha="left",
+            va="center",
+            fontsize=8,
+            fontweight="bold",
+            color=DARK_TEXT,
+            bbox=dict(
+                boxstyle="round,pad=0.3",
+                facecolor=colors[i - 1],
+                alpha=0.5,
+                edgecolor=DARK_TEXT,
+            ),
+        )
+
+    ax.set_xticklabels(model_names, fontweight="bold", color=DARK_TEXT)
+    ax.set_ylabel("Validity Score", fontsize=12, fontweight="bold", color=DARK_TEXT)
     ax.set_title(
         f"Distribution of Validity Scores by Model (samples: {len(df)})",
         fontsize=14,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    ax.grid(axis="y", alpha=0.3)
-    plt.xticks(rotation=45, ha="right")
+    plt.xticks(rotation=20, ha="right", fontsize=10, color=DARK_TEXT)
+    _configure_dark_plot(ax)
 
     _save_plot("model_comparison_boxplot.png")
 
@@ -118,16 +176,36 @@ def _failure_analysis_detailed(df, point_columns):
 
     failure_df = pd.DataFrame(failure_data)
 
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(failure_df["Model"], failure_df["Failure Rate (%)"], color="coral")
-    ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
+
+    bars = ax.barh(
+        failure_df["Model"], failure_df["Failure Rate (%)"], color="#ff6b6b", alpha=0.8
+    )
+    ax.set_yticklabels(failure_df["Model"], fontweight="bold", color=DARK_TEXT)
+    ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold", color=DARK_TEXT)
     ax.set_title(
         f"Classification Failure Rate by Model (samples: {len(df)})",
         fontsize=13,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    ax.grid(axis="x", alpha=0.3)
     ax.set_xlim(0, 100)
+
+    for i, (bar, count, rate) in enumerate(
+        zip(bars, failure_df["Total Failures"], failure_df["Failure Rate (%)"])
+    ):
+        ax.text(
+            rate + 1,
+            bar.get_y() + bar.get_height() / 2,
+            f"{count} ({rate:.1f}%)",
+            va="center",
+            fontsize=10,
+            color=DARK_TEXT,
+        )
+
+    _configure_dark_plot(ax)
     _save_plot("failure_rate_by_model.png")
 
 
@@ -160,26 +238,42 @@ def _spam_agreement_heatmap(df, point_columns, spam_threshold=20):
     colors = ["#ff4d4d", "#ffec99", "#4caf50"]
     cmap = LinearSegmentedColormap.from_list("agreement", colors)
 
-    _, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
+
     im = ax.imshow(agreement, cmap=cmap, vmin=0, vmax=1)
 
     ax.set_xticks(np.arange(n_models))
     ax.set_yticks(np.arange(n_models))
-    ax.set_xticklabels(model_names, rotation=45, ha="right")
-    ax.set_yticklabels(model_names)
+    ax.set_xticklabels(
+        model_names, rotation=45, ha="right", fontweight="bold", color=DARK_TEXT
+    )
+    ax.set_yticklabels(model_names, fontweight="bold", color=DARK_TEXT)
 
     for i in range(n_models):
         for j in range(n_models):
+            text_color = "black" if agreement[i, j] > 0.5 else "white"
             ax.text(
-                j, i, f"{agreement[i, j]:.2f}", ha="center", va="center", color="black"
+                j,
+                i,
+                f"{agreement[i, j]:.2f}",
+                ha="center",
+                va="center",
+                color=text_color,
+                fontweight="bold",
             )
 
     ax.set_title(
         f"Inter-Model Spam Agreement (samples: {len(df)})",
         fontsize=14,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    plt.colorbar(im, ax=ax, label="Spam Agreement Rate")
+    cbar = plt.colorbar(im, ax=ax, label="Spam Agreement Rate")
+    cbar.ax.yaxis.label.set_color(DARK_TEXT)
+    cbar.ax.tick_params(colors=DARK_TEXT)
+    cbar.outline.set_edgecolor(DARK_TEXT)
 
     _save_plot("model_spam_agreement_heatmap.png")
 
@@ -202,20 +296,28 @@ def _spam_detected_analysis(df, point_columns):
 
     spam_df = pd.DataFrame(spam_data)
 
-    _, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
+
     bars = ax.barh(
-        spam_df["Model"], spam_df["Spam Detection Rate (%)"], color="skyblue"
+        spam_df["Model"],
+        spam_df["Spam Detection Rate (%)"],
+        color=ACCENT_COLOR,
+        alpha=0.8,
     )
-    ax.set_xlabel("Spam Detection Rate (%)", fontsize=12, fontweight="bold")
+    ax.set_yticklabels(spam_df["Model"], fontweight="bold", color=DARK_TEXT)
+    ax.set_xlabel(
+        "Spam Detection Rate (%)", fontsize=12, fontweight="bold", color=DARK_TEXT
+    )
     ax.set_title(
-        "Spam Detected by Model (validity_point < 20)",
+        f"Spam Detected by Model (validity_point < 20) (samples: {len(df)})",
         fontsize=13,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    ax.grid(axis="x", alpha=0.3)
     ax.set_xlim(0, 100)
 
-    # Add labels with count and percentage
     for i, (bar, count, rate) in enumerate(
         zip(bars, spam_df["Total Spam Detected"], spam_df["Spam Detection Rate (%)"])
     ):
@@ -225,8 +327,10 @@ def _spam_detected_analysis(df, point_columns):
             f"{count} ({rate:.1f}%)",
             va="center",
             fontsize=10,
+            color=DARK_TEXT,
         )
 
+    _configure_dark_plot(ax)
     _save_plot("spam_detection_rate_by_model.png")
 
 
@@ -285,35 +389,56 @@ def _model_execution_time_analysis():
 
     timing_df = pd.DataFrame(timing_data)
 
-    _, ax = plt.subplots(figsize=(10, 6))
+    # Total execution time plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
+
     colors = sns.color_palette("husl", len(timing_df))
-    ax.barh(timing_df["Model"], timing_df["Total Time (s)"], color=colors)
-    ax.set_xlabel("Total Execution Time (s)", fontsize=12, fontweight="bold")
+    ax.barh(timing_df["Model"], timing_df["Total Time (s)"], color=colors, alpha=0.8)
+    ax.set_yticklabels(timing_df["Model"], fontweight="bold", color=DARK_TEXT)
+    ax.set_xlabel(
+        "Total Execution Time (s)", fontsize=12, fontweight="bold", color=DARK_TEXT
+    )
     ax.set_title(
-        f"Total Execution Time by Model (samples: {timing_df['Items Processed']})",
+        f"Total Execution Time by Model (samples: {len(df_timing)})",
         fontsize=13,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    ax.grid(axis="x", alpha=0.3)
 
     for i, v in enumerate(timing_df["Total Time (s)"]):
-        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10)
+        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10, color=DARK_TEXT)
 
+    _configure_dark_plot(ax)
     _save_plot("model_execution_time_total.png")
 
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(timing_df["Model"], timing_df["Average Time per Item (s)"], color=colors)
-    ax.set_xlabel("Average Time per Item (s)", fontsize=12, fontweight="bold")
+    # Average execution time plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor(DARK_BG)
+    ax.set_facecolor(DARK_BG)
+
+    ax.barh(
+        timing_df["Model"],
+        timing_df["Average Time per Item (s)"],
+        color=colors,
+        alpha=0.8,
+    )
+    ax.set_yticklabels(timing_df["Model"], fontweight="bold", color=DARK_TEXT)
+    ax.set_xlabel(
+        "Average Time per Item (s)", fontsize=12, fontweight="bold", color=DARK_TEXT
+    )
     ax.set_title(
-        f"Average Execution Time per Item by Model (samples: {timing_df['Items Processed']})",
+        f"Average Execution Time per Item by Model (samples: {len(df_timing)})",
         fontsize=13,
         fontweight="bold",
+        color=DARK_TEXT,
     )
-    ax.grid(axis="x", alpha=0.3)
 
     for i, v in enumerate(timing_df["Average Time per Item (s)"]):
-        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10)
+        ax.text(v, i, f" {_format_time(v)}", va="center", fontsize=10, color=DARK_TEXT)
 
+    _configure_dark_plot(ax)
     _save_plot("model_execution_time_average.png")
 
 
