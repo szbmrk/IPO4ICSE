@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e  # Exit on error
+
 # Arguments
 EXPORT_DIR=$1
 BENCHMARK_DIR=$2
@@ -18,6 +20,59 @@ SERVER_PORT=8080
 TEMPS=(0.2 0.4 0.6 0.8)
 
 # Helper functions
+check_mysql() {
+    echo "Checking MySQL connection..."
+    
+    # Load environment variables
+    if [ -f .env ]; then
+        export $(grep -v '^#' .env | xargs)
+    else
+        echo "Error: .env file not found"
+        return 1
+    fi
+    
+    # Try to connect to MySQL
+    if command -v mysql &> /dev/null; then
+        if mysql -h"${DB_HOST:-localhost}" -u"${DB_USER:-root}" -p"${DB_PASSWORD}" -e "USE ${DB_NAME:-TAWOS};" 2>/dev/null; then
+            echo "✓ MySQL connection successful"
+            return 0
+        else
+            echo "✗ Cannot connect to MySQL database"
+            return 1
+        fi
+    else
+        # If mysql client not available, try with Python
+        if python3 -c "import pymysql; pymysql.connect(host='${DB_HOST:-localhost}', user='${DB_USER:-root}', password='${DB_PASSWORD}', database='${DB_NAME:-TAWOS}', connect_timeout=5).close()" 2>/dev/null; then
+            echo "✓ MySQL connection successful"
+            return 0
+        else
+            echo "✗ Cannot connect to MySQL database"
+            return 1
+        fi
+    fi
+}
+
+print_mysql_error() {
+    echo ""
+    echo "=========================================="
+    echo "MySQL Connection Error!"
+    echo "=========================================="
+    echo "The script requires a working MySQL connection to export data."
+    echo ""
+    echo "Please ensure:"
+    echo "  1. MySQL server is running"
+    echo "  2. Database exists and is accessible"
+    echo "  3. Credentials in .env are correct"
+    echo ""
+    echo "To start MySQL:"
+    echo "  - Linux: sudo systemctl start mysql"
+    echo "  - macOS: brew services start mysql"
+    echo ""
+    echo "To test connection manually:"
+    echo "  mysql -h \$DB_HOST -u \$DB_USER -p \$DB_NAME"
+    echo "=========================================="
+    echo ""
+}
 wait_for_server() {
     local max_attempts=60
     local attempt=0
@@ -49,6 +104,12 @@ if [ -f "$VENV_PATH/bin/activate" ]; then
     source "$VENV_PATH/bin/activate"
 else
     echo "Virtual environment not found at $VENV_PATH"
+    exit 1
+fi
+
+# Check MySQL connection before starting
+if ! check_mysql; then
+    print_mysql_error
     exit 1
 fi
 

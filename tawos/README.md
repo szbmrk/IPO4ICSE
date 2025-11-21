@@ -134,9 +134,12 @@ Data cleaning currently consists of removing unnecessery columns.
 
 ### Prerequisites
 After running `setup.sh`, ensure you have:
-1. Downloaded GGUF models to `~/models/`
-2. Configured `.env` with database credentials
-3. Reviewed `config.toml` settings
+1. **MySQL server is running** - The scripts will check and exit with an error if MySQL is not accessible
+2. Downloaded GGUF models to `~/models/`
+3. Configured `.env` with database credentials
+4. Reviewed `config.toml` settings
+
+**Important**: All scripts now automatically check MySQL connectivity before starting. If MySQL is not running, you'll see a clear error message with instructions to start it.
 
 ### Basic Usage
 
@@ -219,7 +222,31 @@ After running `setup.sh`, verify everything is working:
 
 ## Troubleshooting
 
-For common issues and solutions, see the [Troubleshooting section in requirements.md](requirements.md#troubleshooting).
+### MySQL Connection Errors
+
+All scripts (`main.py`, `run_experiment.sh`, `start_models.sh`) now automatically check MySQL connectivity before starting. If you see a MySQL connection error:
+
+1. **Check if MySQL is running:**
+   ```bash
+   # Linux
+   sudo systemctl status mysql
+   sudo systemctl start mysql  # If not running
+   
+   # macOS
+   brew services list
+   brew services start mysql  # If not running
+   ```
+
+2. **Verify connection manually:**
+   ```bash
+   mysql -h localhost -u root -p TAWOS
+   ```
+
+3. **Check your .env file:**
+   - Ensure `DB_HOST`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` are correct
+   - No extra spaces or quotes around values
+
+For more common issues and solutions, see the [Troubleshooting section in requirements.md](requirements.md#troubleshooting).
 
 ## Documentation
 

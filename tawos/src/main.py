@@ -8,6 +8,7 @@ from core.data_cleaning import (
     filter_by_own_metrics,
 )
 from core.log import get_logger
+from core.db_check import ensure_mysql_connection
 from config_loader import config
 from core.local_model_classifier import LocalModelClassifier
 
@@ -39,6 +40,11 @@ def main():
     if args.benchmark:
         run_benchmark()
         exit(0)
+
+    # Check MySQL connection before export
+    if args.export or config.EXPORT_ENABLED:
+        logger.info("Checking MySQL connection...")
+        ensure_mysql_connection()
 
     if args.export:
         export(args.yes)
