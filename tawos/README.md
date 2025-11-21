@@ -176,10 +176,14 @@ To run a full experiment including data export, model classification with varyin
 ### What it does
 
 1. **Exports Data**: Exports the configured number of issues from the database to `export_dir`.
-2. **Runs Models**: Iterates through all `.gguf` models in `model_dir`.
+2. **Computes Own Metrics**: Calculates validity scores based on internal metrics (done once).
+3. **Runs Models**: Iterates through all `.gguf` models in `model_dir`.
     - For each model, it runs classification with temperatures: `0.2`, `0.4`, `0.6`, `0.8`.
     - Results are saved in `Issue.csv` with columns named `modelname_temp_XX_validity_point`.
-3. **Benchmarks**: Generates statistical summaries and plots in `benchmark_dir`.
+4. **Creates Cleaned CSVs**: Filters issues based on own metrics and creates cleaned versions (done once at the end).
+5. **Runs Benchmark**: Generates statistical summaries and plots in `benchmark_dir`.
+
+**Performance Optimization**: Own metrics calculation and CSV filtering are only performed once, not for each model/temperature combination, significantly reducing runtime.
 
 ### Example
 

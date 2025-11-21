@@ -58,6 +58,14 @@ def add_points_generated_by_own_metrics():
     logger.info("Starting classifying by own metrics")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
+
+    if "OwnMetrics_validity_point" in df.columns:
+        logger.info(
+            "Own metrics already computed (OwnMetrics_validity_point column exists)"
+        )
+        logger.info("Skipping own metrics calculation. Use --export to recalculate.")
+        return
+
     points = classify_by_own_metrics(df)
     df["OwnMetrics_validity_point"] = points
     df.to_csv(issues_path, sep=";", index=False)

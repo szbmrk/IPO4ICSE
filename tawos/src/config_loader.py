@@ -60,7 +60,6 @@ class Config:
         self.BENCHMARK_OUTPUT = os.getenv(
             "BENCHMARK_OUTPUT", benchmark_cfg.get("output", "benchmark")
         )
-        self.BENCHMARK_OUTPUT = benchmark_cfg.get("output", "benchmark")
 
         logging_cfg = self.toml_config.get("logging", {})
         self.LOG_LEVEL = logging_cfg.get("level", "INFO")

@@ -1,4 +1,6 @@
 import argparse
+import signal
+import sys
 from core.benchmark import run_benchmark
 from core.export import export_sql_to_csv
 from core.data_cleaning import (
@@ -16,6 +18,12 @@ from core.local_model_classifier import LocalModelClassifier
 logger = get_logger("main")
 
 
+def signal_handler(sig, frame):
+    logger.warning("\nInterrupt received! Stopping gracefully...")
+    logger.info("Cleaning up and exiting...")
+    sys.exit(130)
+
+
 def export(force=False):
     if force:
         export_sql_to_csv()
@@ -29,19 +37,31 @@ def export(force=False):
 
 
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--benchmark", action="store_true", help="Run the benchmark pipeline"
     )
     parser.add_argument("--export", action="store_true", help="Only run the exporting")
     parser.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
+    parser.add_argument(
+        "--skip-own-metrics",
+        action="store_true",
+        help="Skip own metrics calculation (use if already computed)",
+    )
+    parser.add_argument(
+        "--skip-filtering",
+        action="store_true",
+        help="Skip filtering and cleaned CSV creation (use for intermediate runs)",
+    )
     args = parser.parse_args()
 
     if args.benchmark:
         run_benchmark()
         exit(0)
 
-    # Check MySQL connection before export
     if args.export or config.EXPORT_ENABLED:
         logger.info("Checking MySQL connection...")
         ensure_mysql_connection()
@@ -55,13 +75,20 @@ def main():
 
     remove_unnecessery_columns()
 
-    add_points_generated_by_own_metrics()
+    if not args.skip_own_metrics:
+        add_points_generated_by_own_metrics()
+    else:
+        logger.info("Skipping own metrics calculation (--skip-own-metrics flag set)")
 
     if config.LOCAL_MODEL_ENABLED:
         local_classifier = LocalModelClassifier()
         add_points_generated_by_local_model(local_classifier)
 
-    filter_by_own_metrics()
+    # Only run filtering if not skipped (should be done once at the end)
+    if not args.skip_filtering:
+        filter_by_own_metrics()
+    else:
+        logger.info("Skipping filtering step (--skip-filtering flag set)")
 
 
 if __name__ == "__main__":
