@@ -36,18 +36,30 @@ class Config:
     def _load_toml(self):
         export_cfg = self.toml_config.get("export", {})
         self.EXPORT_LIMIT = export_cfg.get("limit", 1000)
-        self.EXPORT_FOLDER = export_cfg.get("folder", "exports")
-        self.EXPORT_ENABLED = export_cfg.get("enabled", True)
+        self.EXPORT_FOLDER = os.getenv(
+            "EXPORT_FOLDER", export_cfg.get("folder", "exports")
+        )
+        self.EXPORT_ENABLED = (
+            os.getenv("EXPORT_ENABLED", str(export_cfg.get("enabled", True))).lower()
+            == "true"
+        )
 
         local_model_cfg = self.toml_config.get("local_model", {})
         self.LOCAL_MODEL_ENABLED = local_model_cfg.get("enabled", True)
         self.LOCAL_MODEL_URL = local_model_cfg.get("url", "http://localhost:8080")
         self.LOCAL_MODEL_BATCH_SIZE = local_model_cfg.get("batch_size", 16)
         self.LOCAL_MODEL_N_PREDICT = local_model_cfg.get("n_predict", 20)
-        self.LOCAL_MODEL_TEMP = local_model_cfg.get("temp", 0.4)
+        self.LOCAL_MODEL_TEMP = float(
+            os.getenv("LOCAL_MODEL_TEMP", local_model_cfg.get("temp", 0.4))
+        )
 
         benchmark_cfg = self.toml_config.get("benchmark", {})
-        self.BENCHMARK_FOLDER = benchmark_cfg.get("folder", "exports")
+        self.BENCHMARK_FOLDER = os.getenv(
+            "BENCHMARK_FOLDER", benchmark_cfg.get("folder", "exports")
+        )
+        self.BENCHMARK_OUTPUT = os.getenv(
+            "BENCHMARK_OUTPUT", benchmark_cfg.get("output", "benchmark")
+        )
         self.BENCHMARK_OUTPUT = benchmark_cfg.get("output", "benchmark")
 
         logging_cfg = self.toml_config.get("logging", {})

@@ -10,12 +10,61 @@ After the basic cleaning multiple validiation processes are run to filter out th
 
 All exported CSV files are saved into a configurable output directory (default: `exports/`).
 
+## Quick Start
+
+### Automated Setup
+
+Run the automated setup script to install all dependencies and configure the environment:
+
+```bash
+# Use default directories
+./setup.sh
+
+# Or specify custom directories
+./setup.sh --llama-dir /path/to/llama.cpp --model-dir /path/to/models
+```
+
+**Options:**
+- `--llama-dir DIR`: Specify where to install llama.cpp (default: `~/Projects/llama.cpp`)
+- `--model-dir DIR`: Specify where to store GGUF models (default: `~/models`)
+- `--help`: Show usage information
+
+This will:
+- Check system requirements (Python 3.9+, MySQL, Git, CMake, etc.)
+- Create and configure Python virtual environment
+- Clone and build llama.cpp with GPU support (if available)
+- Set up model directory for GGUF files
+- Create configuration files (`.env` and `config.toml`)
+- Test database connection
+- Make all scripts executable
+
+After setup completes, follow the printed instructions to download models and run your first experiment.
+
+### What the Setup Script Does
+
+The `setup.sh` script performs a complete automated installation:
+
+1. **System Check**: Validates that all required tools are installed (Python 3.9+, Git, CMake, MySQL, C++ compiler, curl)
+2. **Python Environment**: Creates a virtual environment and installs all dependencies
+3. **llama.cpp**: Clones the repository to `~/Projects/llama.cpp` and builds with GPU support if available (CUDA/Metal)
+4. **Model Directory**: Creates `~/models/` directory for storing GGUF model files
+5. **Configuration**: Interactively creates `.env` and `config.toml` files
+6. **Database Test**: Verifies MySQL connection with provided credentials
+7. **Scripts**: Makes all shell scripts executable
+
+After running `setup.sh`, you only need to:
+- Download GGUF models to `~/models/` (e.g., from [HuggingFace](https://huggingface.co/models?library=gguf))
+- Adjust `config.toml` if needed
+- Run `./run_experiment.sh <export_dir> <benchmark_dir> ~/models`
+
 ## Requirements
+
+For detailed system requirements and manual installation steps, see [requirements.md](requirements.md).
 
 ### Python Packages
 Install dependencies using:
 
-```
+```bash
 uv sync
 
 # or if not using uv:
@@ -83,20 +132,96 @@ Data cleaning currently consists of removing unnecessery columns.
 
 ## How to Run
 
-```
+### Prerequisites
+After running `setup.sh`, ensure you have:
+1. Downloaded GGUF models to `~/models/`
+2. Configured `.env` with database credentials
+3. Reviewed `config.toml` settings
+
+### Basic Usage
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Run the main pipeline
 python src/main.py
+
+# Export only
+python src/main.py --export --yes
+
+# Benchmark only
+python src/main.py --benchmark
 ```
 
-## Output Example
+## Running Experiments
 
+To run a full experiment including data export, model classification with varying temperatures, and benchmarking, use the provided `run_experiment.sh` script.
+
+### Usage
+
+```bash
+./run_experiment.sh <export_dir> <benchmark_dir> <model_dir>
 ```
-exports/
-├── Issue.csv
-├── Comment.csv
-├── Change_Log.csv
-├── Component.csv
-├── User.csv
-├── Sprint.csv
-├── Project.csv
-└── Repository.csv
+
+### Arguments
+
+1. `export_dir`: Directory where the exported CSV files and classification results will be saved.
+2. `benchmark_dir`: Directory where the benchmark summary and plots will be saved.
+3. `model_dir`: Directory containing the GGUF model files to be tested.
+
+### What it does
+
+1. **Exports Data**: Exports the configured number of issues from the database to `export_dir`.
+2. **Runs Models**: Iterates through all `.gguf` models in `model_dir`.
+    - For each model, it runs classification with temperatures: `0.2`, `0.4`, `0.6`, `0.8`.
+    - Results are saved in `Issue.csv` with columns named `modelname_temp_XX_validity_point`.
+3. **Benchmarks**: Generates statistical summaries and plots in `benchmark_dir`.
+
+### Example
+
+```bash
+./run_experiment.sh exports-experiment benchmark-results ~/models
 ```
+
+## Verifying Your Setup
+
+After running `setup.sh`, verify everything is working:
+
+1. **Check Python Environment**
+   ```bash
+   source .venv/bin/activate
+   python --version  # Should show 3.9+
+   pip list | grep pandas  # Verify packages installed
+   ```
+
+2. **Check llama.cpp**
+   ```bash
+   ~/llama.cpp/build/bin/llama-server --version
+   ls ~/models/*.gguf  # List your models
+   ```
+
+3. **Test Database Connection**
+   ```bash
+   source .venv/bin/activate
+   python -c "from dotenv import load_dotenv; import pymysql, os; load_dotenv(); pymysql.connect(host=os.getenv('DB_HOST'), user=os.getenv('DB_USER'), password=os.getenv('DB_PASSWORD'), database=os.getenv('DB_NAME')); print('✓ Database connection successful')"
+   ```
+
+4. **Test llama.cpp Server**
+   ```bash
+   # Start server with a model
+   ~/Projects/llama.cpp/build/bin/llama-server -m ~/models/your-model.gguf -ngl 99 --port 8080 &
+   sleep 5
+   curl http://localhost:8080/health
+   # Should return OK
+   # Kill server: pkill llama-server
+   ```
+
+## Troubleshooting
+
+For common issues and solutions, see the [Troubleshooting section in requirements.md](requirements.md#troubleshooting).
+
+## Documentation
+
+- **[requirements.md](requirements.md)**: Detailed system requirements and installation instructions
+- **[example.config.toml](example.config.toml)**: Configuration template with all options

@@ -23,9 +23,10 @@ class LocalModelClassifier(BaseClassifier):
                     full_path = data["models"][0]["name"]
                     filename = os.path.basename(full_path)
                     name = os.path.splitext(filename)[0]
-                    return name.replace(".gguf", "")
+                    clean_name = name.replace(".gguf", "")
+                    return f"{clean_name}_temp_{config.LOCAL_MODEL_TEMP}"
         except Exception:
-            return "unkown_model"
+            return f"unkown_model_temp_{config.LOCAL_MODEL_TEMP}"
 
     async def _classify_single(self, session, title, desc) -> int | None:
         prompt = f"""
