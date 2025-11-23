@@ -49,6 +49,11 @@ def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = pd.read_csv(issues_path, sep=";")
     points, column_name = asyncio.run(classifier.classify(df))
+
+    if points is None:
+        logger.info(f"Skipping saving for {column_name} as it was skipped.")
+        return
+
     df[column_name] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")

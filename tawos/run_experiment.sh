@@ -13,7 +13,7 @@ LLAMA_SERVER=~/Projects/llama.cpp/build/bin/llama-server
 PYTHON_SCRIPT=src/main.py
 VENV_PATH=.venv
 SERVER_PORT=8080
-TEMPS=(0.2 0.4 0.6 0.8)
+TEMPS=(0.2 0.3 0.4 0.5)
 
 SERVER_PID=""
 PYTHON_PID=""
@@ -191,18 +191,19 @@ export EXPORT_ENABLED="true"
 python "$PYTHON_SCRIPT" --export --yes
 
 export EXPORT_ENABLED="false"
+export LOCAL_MODEL_ENABLED="false"
 
 echo "Computing own metrics..."
 python "$PYTHON_SCRIPT"
 echo "Own metrics computed!"
+export LOCAL_MODEL_ENABLED="true"
 
 for MODEL_PATH in "$MODEL_DIR"/*; do
     if [[ -f "$MODEL_PATH" ]]; then
-        echo ""
         echo "=========================================="
         echo "Starting model: $(basename "$MODEL_PATH")"
         echo "=========================================="
-        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl 99 --port "$SERVER_PORT" > /dev/null 2>&1 &
+        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl 90 --port "$SERVER_PORT" > /dev/null 2>&1 &
         SERVER_PID=$!
         echo "llama-server PID: $SERVER_PID"
         
@@ -211,7 +212,6 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
                 echo "Running classification with temp $TEMP..."
                 export LOCAL_MODEL_TEMP="$TEMP"
                 
-                # Skip both own metrics and filtering for model runs
                 python "$PYTHON_SCRIPT" --skip-own-metrics --skip-filtering &
                 PYTHON_PID=$!
                 
@@ -230,7 +230,6 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
             wait "$SERVER_PID" 2>/dev/null || true
             SERVER_PID=""
             
-            # Give the OS time to fully release the port
             sleep 2
             
             wait_for_port_free "$SERVER_PORT"
@@ -242,7 +241,6 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
             wait "$SERVER_PID" 2>/dev/null || true
             SERVER_PID=""
             
-            # Give the OS time to fully release the port
             sleep 2
             
             wait_for_port_free "$SERVER_PORT"
@@ -250,11 +248,9 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
     fi
 done
 
-echo ""
 echo "Creating cleaned CSV files..."
 python "$PYTHON_SCRIPT" --skip-own-metrics
 echo "Cleaned CSV files created in ${EXPORT_DIR}-cleaned"
-echo ""
 
 echo "Running benchmark..."
 export BENCHMARK_FOLDER="$EXPORT_DIR"

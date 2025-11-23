@@ -81,6 +81,12 @@ class BaseClassifier(ABC):
         model_name = await self._get_model_name()
         points_column = f"{model_name}_validity_point"
 
+        if points_column in df.columns:
+            logger.info(
+                f"Column '{points_column}' already exists. Skipping classification."
+            )
+            return None, points_column
+
         total_rows = len(df)
         logger.info(f"Classification started for {total_rows} rows")
         logger.debug(f"Using batch size: {self.batch_size}")

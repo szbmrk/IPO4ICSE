@@ -84,7 +84,6 @@ def main():
         local_classifier = LocalModelClassifier()
         add_points_generated_by_local_model(local_classifier)
 
-    # Only run filtering if not skipped (should be done once at the end)
     if not args.skip_filtering:
         filter_by_own_metrics()
     else:

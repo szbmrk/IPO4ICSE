@@ -45,7 +45,12 @@ class Config:
         )
 
         local_model_cfg = self.toml_config.get("local_model", {})
-        self.LOCAL_MODEL_ENABLED = local_model_cfg.get("enabled", True)
+        self.LOCAL_MODEL_ENABLED = (
+            os.getenv(
+                "LOCAL_MODEL_ENABLED", str(local_model_cfg.get("enabled", True))
+            ).lower()
+            == "true"
+        )
         self.LOCAL_MODEL_URL = local_model_cfg.get("url", "http://localhost:8080")
         self.LOCAL_MODEL_BATCH_SIZE = local_model_cfg.get("batch_size", 16)
         self.LOCAL_MODEL_N_PREDICT = local_model_cfg.get("n_predict", 20)
