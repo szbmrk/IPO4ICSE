@@ -31,7 +31,7 @@ LLAMA_SERVER=~/Projects/llama.cpp/build/bin/llama-server
 PYTHON_SCRIPT=src/main.py
 VENV_PATH=.venv
 SERVER_PORT=8080
-TEMPS=(0.2 0.3 0.4 0.5)
+TEMPS=(0.2 0.3 0.4 0.5 0.75 1.0)
 
 SERVER_PID=""
 PYTHON_PID=""
@@ -226,7 +226,7 @@ for MODEL_PATH in "$MODEL_DIR"/*; do
         echo "=========================================="
         echo "Starting model: $(basename "$MODEL_PATH")"
         echo "=========================================="
-        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl 90 --port "$SERVER_PORT" > /dev/null 2>&1 &
+        "$LLAMA_SERVER" -m "$MODEL_PATH" -ngl -1 --cache-ram 0 --port "$SERVER_PORT" &> llama.log &
         SERVER_PID=$!
         echo "llama-server PID: $SERVER_PID"
         
