@@ -1,11 +1,29 @@
 #!/usr/bin/env bash
 
+RUN_EXPORT=false
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --export)
+      RUN_EXPORT=true
+      shift
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}"
+
 EXPORT_DIR=$1
 BENCHMARK_DIR=$2
 MODEL_DIR=$3
 
 if [ -z "$EXPORT_DIR" ] || [ -z "$BENCHMARK_DIR" ] || [ -z "$MODEL_DIR" ]; then
-    echo "Usage: $0 <export_dir> <benchmark_dir> <model_dir>"
+    echo "Usage: $0 <export_dir> <benchmark_dir> <model_dir> [--export]"
     exit 1
 fi
 
@@ -180,15 +198,20 @@ else
     exit 1
 fi
 
-if ! check_mysql; then
-    print_mysql_error
-    exit 1
-fi
-
-echo "Exporting data to $EXPORT_DIR..."
 export EXPORT_FOLDER="$EXPORT_DIR"
-export EXPORT_ENABLED="true"
-python "$PYTHON_SCRIPT" --export --yes
+
+if [ "$RUN_EXPORT" = true ]; then
+    if ! check_mysql; then
+        print_mysql_error
+        exit 1
+    fi
+
+    echo "Exporting data to $EXPORT_DIR..."
+    export EXPORT_ENABLED="true"
+    python "$PYTHON_SCRIPT" --export --yes
+else
+    echo "Skipping export..."
+fi
 
 export EXPORT_ENABLED="false"
 export LOCAL_MODEL_ENABLED="false"
@@ -261,3 +284,4 @@ trap - SIGINT SIGTERM
 
 deactivate
 echo "Done!"
+shutdown now

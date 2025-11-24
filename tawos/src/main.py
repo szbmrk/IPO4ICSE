@@ -27,6 +27,7 @@ def signal_handler(sig, frame):
 def export(force=False):
     if force:
         export_sql_to_csv()
+        remove_unnecessery_columns()
         return
 
     confirm = input(
@@ -34,6 +35,7 @@ def export(force=False):
     )
     if confirm == "y":
         export_sql_to_csv()
+        remove_unnecessery_columns()
 
 
 def main():
@@ -72,8 +74,6 @@ def main():
 
     if config.EXPORT_ENABLED:
         export(args.yes)
-
-    remove_unnecessery_columns()
 
     if not args.skip_own_metrics:
         add_points_generated_by_own_metrics()

@@ -1,6 +1,8 @@
 import asyncio
 import os
+import csv
 import pandas as pd
+from pandas.errors import ParserError
 
 from core.local_model_classifier import LocalModelClassifier
 from core.log import get_logger
@@ -8,6 +10,64 @@ from config_loader import config
 from core.own_metrics_classifier import classify_by_own_metrics
 
 logger = get_logger("DataCleaning")
+
+
+def safe_read_csv(file_path: str, default_sep: str = ";") -> pd.DataFrame:
+    try:
+        return pd.read_csv(file_path, sep=default_sep)
+    except ParserError as e1:
+        logger.warning(
+            f"Initial parse with sep='{default_sep}' failed for {file_path}: {e1}. Trying to sniff delimiter."
+        )
+
+    detected_sep = None
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            sample = f.read(10000)
+            sniffer = csv.Sniffer()
+            dialect = sniffer.sniff(sample, delimiters=";,|\t")
+            detected_sep = dialect.delimiter
+            logger.info(f"Detected delimiter '{detected_sep}' for {file_path}")
+    except Exception:
+        logger.warning(
+            f"Could not detect delimiter for {file_path}, will try alternate parsing strategies."
+        )
+
+    if detected_sep and detected_sep != default_sep:
+        try:
+            return pd.read_csv(file_path, sep=detected_sep)
+        except ParserError:
+            logger.warning(
+                f"Parsing with detected delimiter '{detected_sep}' failed for {file_path}."
+            )
+
+    try:
+        return pd.read_csv(
+            file_path,
+            sep=default_sep,
+            quoting=csv.QUOTE_NONE,
+        )
+    except Exception:
+        logger.warning(
+            f"Parsing with QUOTE_NONE failed for {file_path}, attempting csv.reader fallback."
+        )
+
+    try:
+        sep_to_use = detected_sep or default_sep
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            reader = csv.reader(f, delimiter=sep_to_use)
+            rows = list(reader)
+
+        if not rows:
+            raise ValueError(f"No rows parsed from {file_path}")
+
+        header = rows[0]
+        data = rows[1:]
+        df = pd.DataFrame(data, columns=header)
+        return df
+    except Exception as e:
+        logger.error(f"Failed to read CSV {file_path}: {e}")
+        raise
 
 
 def _remove_columns_from_csv(
@@ -19,7 +79,7 @@ def _remove_columns_from_csv(
         logger.error(f"File '{file_path}' not found.")
         raise FileNotFoundError(f"File '{file_path}' not found.")
 
-    df = pd.read_csv(file_path, sep=";")
+    df = safe_read_csv(file_path)
 
     for column_name in columns:
         if column_name in df.columns:
@@ -47,7 +107,7 @@ def remove_unnecessery_columns():
 def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     logger.info("Starting classifying by local model")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
-    df = pd.read_csv(issues_path, sep=";")
+    df = safe_read_csv(issues_path)
     points, column_name = asyncio.run(classifier.classify(df))
 
     if points is None:
@@ -61,8 +121,9 @@ def add_points_generated_by_local_model(classifier: LocalModelClassifier):
 
 def add_points_generated_by_own_metrics():
     logger.info("Starting classifying by own metrics")
+    logger.info(f"Export folder: {config.EXPORT_FOLDER}")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
-    df = pd.read_csv(issues_path, sep=";")
+    df = safe_read_csv(issues_path)
 
     if "OwnMetrics_validity_point" in df.columns:
         logger.info(
@@ -91,7 +152,7 @@ def filter_by_own_metrics():
         logger.error(f"File '{issues_path}' not found.")
         return
 
-    df_issues = pd.read_csv(issues_path, sep=";")
+    df_issues = safe_read_csv(issues_path)
 
     # Check if OwnMetrics column exists
     if "OwnMetrics_validity_point" not in df_issues.columns:
@@ -127,7 +188,7 @@ def filter_by_own_metrics():
     for filename, id_col in related_files.items():
         file_path = os.path.join(source_folder, filename)
         if os.path.exists(file_path):
-            df = pd.read_csv(file_path, sep=";")
+            df = safe_read_csv(file_path)
             if id_col in df.columns:
                 initial_rows = len(df)
                 df_filtered = df[df[id_col].isin(valid_ids)]
@@ -162,7 +223,7 @@ def filter_by_own_metrics():
     for filename in other_files:
         file_path = os.path.join(source_folder, filename)
         if os.path.exists(file_path):
-            df = pd.read_csv(file_path, sep=";")
+            df = safe_read_csv(file_path)
             target_path = os.path.join(
                 target_folder, filename.replace(".csv", "_cleaned.csv")
             )
