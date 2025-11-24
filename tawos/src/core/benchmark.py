@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from core.log import get_logger
 from matplotlib.colors import LinearSegmentedColormap
-from collections import Counter
+
+from utils.file_reading import safe_read_csv
 
 logger = get_logger("Benchmark")
 OUTPUT_DIR = config.BENCHMARK_OUTPUT
@@ -447,7 +448,7 @@ def run_benchmark():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     file_path = os.path.join(config.BENCHMARK_FOLDER, "Issue.csv")
-    df = pd.read_csv(file_path, sep=";")
+    df = safe_read_csv(file_path)
     point_columns = [c for c in df.columns if c.endswith("_validity_point")]
 
     logger.info(f"Found {len(point_columns)} models to analyze")

@@ -1,73 +1,13 @@
 import asyncio
 import os
-import csv
-import pandas as pd
-from pandas.errors import ParserError
 
 from core.local_model_classifier import LocalModelClassifier
 from core.log import get_logger
 from config_loader import config
 from core.own_metrics_classifier import classify_by_own_metrics
+from utils.file_reading import safe_read_csv
 
 logger = get_logger("DataCleaning")
-
-
-def safe_read_csv(file_path: str, default_sep: str = ";") -> pd.DataFrame:
-    try:
-        return pd.read_csv(file_path, sep=default_sep)
-    except ParserError as e1:
-        logger.warning(
-            f"Initial parse with sep='{default_sep}' failed for {file_path}: {e1}. Trying to sniff delimiter."
-        )
-
-    detected_sep = None
-    try:
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-            sample = f.read(10000)
-            sniffer = csv.Sniffer()
-            dialect = sniffer.sniff(sample, delimiters=";,|\t")
-            detected_sep = dialect.delimiter
-            logger.info(f"Detected delimiter '{detected_sep}' for {file_path}")
-    except Exception:
-        logger.warning(
-            f"Could not detect delimiter for {file_path}, will try alternate parsing strategies."
-        )
-
-    if detected_sep and detected_sep != default_sep:
-        try:
-            return pd.read_csv(file_path, sep=detected_sep)
-        except ParserError:
-            logger.warning(
-                f"Parsing with detected delimiter '{detected_sep}' failed for {file_path}."
-            )
-
-    try:
-        return pd.read_csv(
-            file_path,
-            sep=default_sep,
-            quoting=csv.QUOTE_NONE,
-        )
-    except Exception:
-        logger.warning(
-            f"Parsing with QUOTE_NONE failed for {file_path}, attempting csv.reader fallback."
-        )
-
-    try:
-        sep_to_use = detected_sep or default_sep
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-            reader = csv.reader(f, delimiter=sep_to_use)
-            rows = list(reader)
-
-        if not rows:
-            raise ValueError(f"No rows parsed from {file_path}")
-
-        header = rows[0]
-        data = rows[1:]
-        df = pd.DataFrame(data, columns=header)
-        return df
-    except Exception as e:
-        logger.error(f"Failed to read CSV {file_path}: {e}")
-        raise
 
 
 def _remove_columns_from_csv(
@@ -141,12 +81,10 @@ def add_points_generated_by_own_metrics():
 def filter_by_own_metrics():
     logger.info("Starting filtering by own metrics")
 
-    # Define paths
     source_folder = config.EXPORT_FOLDER
     target_folder = f"{source_folder}-cleaned"
     os.makedirs(target_folder, exist_ok=True)
 
-    # 1. Process Issue.csv
     issues_path = os.path.join(source_folder, "Issue.csv")
     if not os.path.exists(issues_path):
         logger.error(f"File '{issues_path}' not found.")
@@ -154,12 +92,10 @@ def filter_by_own_metrics():
 
     df_issues = safe_read_csv(issues_path)
 
-    # Check if OwnMetrics column exists
     if "OwnMetrics_validity_point" not in df_issues.columns:
         logger.error("OwnMetrics_validity_point column missing in Issue.csv")
         return
 
-    # Filter issues
     initial_count = len(df_issues)
     df_valid_issues = df_issues[df_issues["OwnMetrics_validity_point"] >= 20].copy()
     filtered_count = len(df_valid_issues)
@@ -169,16 +105,13 @@ def filter_by_own_metrics():
 
     valid_ids = set(df_valid_issues["ID"])
 
-    # Remove validity point columns
     cols_to_drop = [c for c in df_valid_issues.columns if c.endswith("_validity_point")]
     df_valid_issues.drop(columns=cols_to_drop, inplace=True)
 
-    # Save cleaned Issue.csv
     target_issue_path = os.path.join(target_folder, "Issue_cleaned.csv")
     df_valid_issues.to_csv(target_issue_path, sep=";", index=False)
     logger.info(f"Saved cleaned issues to '{target_issue_path}'")
 
-    # 2. Process related files
     related_files = {
         "Comment.csv": "Issue_ID",
         "Change_Log.csv": "Issue_ID",
