@@ -44,6 +44,7 @@ class ModelInfo:
 
         if display_name == "Ownmetrics":
             display_name = "Own Metrics"
+            base_name = "own_metrics"
 
         return cls(
             column_name=column,
@@ -67,6 +68,7 @@ class ModelAnalyzer:
         return [self._color_map[m.base_name] for m in self.models]
 
     def get_display_names(self) -> List[str]:
+        return [m.display_name for m in self.models]
         display_names = []
         previous_base_name = None
         counter = 0
@@ -432,7 +434,7 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
                     total_time = df_timing["Timing (s)"].sum()
                     avg_time = df_timing["Timing (s)"].mean()
                     raw_name = filename.replace("_timing.csv", "")
-                    model_name = raw_name.replace("_", " ").title()
+                    model_name = raw_name.replace("_", " ")
                     timing_data.append(
                         {
                             "Model": model_name,
@@ -455,9 +457,11 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     timing_df = pd.DataFrame(timing_data)
 
     model_order = {
-        m.base_name
-        if m.temperature is None
-        else m.column_name.replace("_validity_point", ""): i
+        (
+            m.base_name
+            if m.temperature is None
+            else m.column_name.replace("_validity_point", "")
+        ): i
         for i, m in enumerate(analyzer.models)
     }
 
@@ -471,7 +475,6 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     )
     model_color_map = analyzer._color_map
     colors = [model_color_map[m] for m in base_models]
-
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor(DARK_BG)
     ax.set_facecolor(DARK_BG)
@@ -485,7 +488,7 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
         "Total Execution Time (s)", fontsize=12, fontweight="bold", color=DARK_TEXT
     )
     ax.set_title(
-        f"Total Execution Time by Model (samples: {len(df_timing)})",
+        f"Total Execution Time (samples: {len(df_timing)})",
         fontsize=13,
         fontweight="bold",
         color=DARK_TEXT,
@@ -510,12 +513,12 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     )
     ax.set_yticks(y_pos)
     ax.set_yticklabels(timing_df["Model"], fontweight="bold", color=DARK_TEXT)
-    ax.invert_yaxis()  # Invert so first item appears at top
+    ax.invert_yaxis()
     ax.set_xlabel(
         "Average Time per Item (s)", fontsize=12, fontweight="bold", color=DARK_TEXT
     )
     ax.set_title(
-        f"Average Execution Time per Item by Model (samples: {len(df_timing)})",
+        f"Average Execution Time per Item (samples: {len(df_timing)})",
         fontsize=13,
         fontweight="bold",
         color=DARK_TEXT,
