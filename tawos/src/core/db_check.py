@@ -1,7 +1,3 @@
-"""
-Database connection checker utility.
-"""
-
 import sys
 import pymysql
 from config_loader import config
@@ -11,12 +7,6 @@ logger = get_logger("DB Check")
 
 
 def check_mysql_connection():
-    """
-    Check if MySQL database is accessible.
-
-    Returns:
-        bool: True if connection successful, False otherwise
-    """
     try:
         conn = pymysql.connect(
             host=config.DB_HOST,
@@ -37,12 +27,6 @@ def check_mysql_connection():
 
 
 def check_mysql_server_running():
-    """
-    Check if MySQL server is running by attempting a basic connection.
-
-    Returns:
-        bool: True if server is running and accessible, False otherwise
-    """
     try:
         conn = pymysql.connect(
             host=config.DB_HOST,
@@ -74,9 +58,6 @@ def check_mysql_server_running():
 
 
 def ensure_mysql_connection():
-    """
-    Ensure MySQL connection is available. Exit with error if not.
-    """
     if not check_mysql_server_running():
         logger.error("=" * 60)
         logger.error("MySQL server is not running or not accessible!")
