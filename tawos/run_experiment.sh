@@ -284,4 +284,3 @@ trap - SIGINT SIGTERM
 
 deactivate
 echo "Done!"
-shutdown now
