@@ -340,7 +340,6 @@ def _spam_agreement_heatmap(
         if best_model:
             best_models.append(best_model)
 
-    # Use best_models for the heatmap
     selected_point_columns = [m.column_name for m in best_models]
     plot_labels = [m.display_name for m in best_models]
 

@@ -29,6 +29,7 @@ class LocalModelClassifier(BaseClassifier):
             return f"unkown_model_temp_{config.LOCAL_MODEL_TEMP}"
 
     async def _classify_single(self, session, title, desc) -> int | None:
+        desc = desc[:1000] + "..." if len(desc) > 1000 else desc
         prompt = f"""
 You are a classifier. Output ONLY valid JSON. 
 The JSON must be: {{"p": <integer from 0 to 100>}}

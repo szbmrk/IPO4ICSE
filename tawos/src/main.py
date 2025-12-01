@@ -64,16 +64,11 @@ def main():
         run_benchmark()
         exit(0)
 
-    if args.export or config.EXPORT_ENABLED:
+    if args.export:
         logger.info("Checking MySQL connection...")
         ensure_mysql_connection()
-
-    if args.export:
         export(args.yes)
         exit(0)
-
-    if config.EXPORT_ENABLED:
-        export(args.yes)
 
     if not args.skip_own_metrics:
         add_points_generated_by_own_metrics()

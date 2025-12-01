@@ -32,7 +32,7 @@ def _calculate_length_score(title, description):  # 0-30 points
     return min(score, 30)
 
 
-def _calculate_structure_score(title, description):  # 0-10 points
+def _calculate_structure_score(description):  # 0-10 points
     score = 0
 
     if "\n" in description:
@@ -285,7 +285,7 @@ def _calculate_row_points(title, description):
         return 0
 
     length = _calculate_length_score(title, description)
-    structure = _calculate_structure_score(title, description)
+    structure = _calculate_structure_score(description)
     style = _calculate_style_score(title, description)
     professionalism = _calculate_professionalism_score(title, description)
     technical = _calculate_technical_content_score(title, description)
@@ -317,7 +317,6 @@ def classify_by_own_metrics(df: pd.DataFrame) -> list[int]:
     logger.info(f"Average validity score: {avg_score:.2f}")
     logger.info(f"Spam/invalid issues detected: {spam_count}")
 
-    # Save timing data to a file
     timing_df = pd.DataFrame(
         {"Row": range(len(timing_data)), "Timing (s)": timing_data}
     )

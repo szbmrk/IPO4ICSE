@@ -207,13 +207,11 @@ if [ "$RUN_EXPORT" = true ]; then
     fi
 
     echo "Exporting data to $EXPORT_DIR..."
-    export EXPORT_ENABLED="true"
     python "$PYTHON_SCRIPT" --export --yes
 else
     echo "Skipping export..."
 fi
 
-export EXPORT_ENABLED="false"
 export LOCAL_MODEL_ENABLED="false"
 
 echo "Computing own metrics..."

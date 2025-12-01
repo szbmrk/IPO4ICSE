@@ -39,10 +39,6 @@ class Config:
         self.EXPORT_FOLDER = os.getenv(
             "EXPORT_FOLDER", export_cfg.get("folder", "exports")
         )
-        self.EXPORT_ENABLED = (
-            os.getenv("EXPORT_ENABLED", str(export_cfg.get("enabled", True))).lower()
-            == "true"
-        )
 
         local_model_cfg = self.toml_config.get("local_model", {})
         self.LOCAL_MODEL_ENABLED = (
