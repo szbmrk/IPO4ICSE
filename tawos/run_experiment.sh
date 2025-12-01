@@ -217,7 +217,7 @@ export EXPORT_ENABLED="false"
 export LOCAL_MODEL_ENABLED="false"
 
 echo "Computing own metrics..."
-python "$PYTHON_SCRIPT"
+python "$PYTHON_SCRIPT" --skip-filtering
 echo "Own metrics computed!"
 export LOCAL_MODEL_ENABLED="true"
 
