@@ -41,11 +41,16 @@ class ModelInfo:
             temperature = None
 
         display_name = name.replace("_", " ").title()
+        if temperature is not None:
+            temperature = float(temperature)
+            display_name = f"{display_name.split('-')[0]} t={temperature:.2f}"
+        else:
+            display_name = f"{display_name.split('-')[0]}"
 
         if display_name == "Ownmetrics":
             display_name = "Own Metrics"
             base_name = "own_metrics"
-
+        temperature = str(temperature)
         return cls(
             column_name=column,
             base_name=base_name,
@@ -57,6 +62,16 @@ class ModelInfo:
 class ModelAnalyzer:
     def __init__(self, point_columns: List[str]):
         self.models = [ModelInfo.from_column(col) for col in point_columns]
+
+        def sort_key(m: ModelInfo):
+            is_not_own_metrics = m.base_name != "own_metrics"
+            try:
+                temp_val = float(m.temperature) if m.temperature else -1.0
+            except ValueError:
+                temp_val = -1.0
+            return (is_not_own_metrics, m.base_name.lower(), -temp_val)
+
+        self.models.sort(key=sort_key)
         self._color_map = self._generate_color_map()
 
     def _generate_color_map(self) -> dict:
@@ -69,18 +84,6 @@ class ModelAnalyzer:
 
     def get_display_names(self) -> List[str]:
         return [m.display_name for m in self.models]
-        display_names = []
-        previous_base_name = None
-        counter = 0
-        for m in self.models:
-            if m.base_name == previous_base_name:
-                counter += 1
-                invisible_suffix = "\u200b" * counter
-                display_names.append(f"Temp {m.temperature}{invisible_suffix}")
-            else:
-                display_names.append(m.display_name)
-            previous_base_name = m.base_name
-        return display_names
 
     def get_column_names(self) -> List[str]:
         return [m.column_name for m in self.models]
@@ -143,13 +146,14 @@ def _format_time(value):
         return f"{value * 1000:.2f}ms"
 
 
-def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
-    logger.info("Creating model comparison boxplot")
-
+def _create_single_boxplot(
+    df, models: List[ModelInfo], filename: str, title: str, color_map: dict
+):
+    point_columns = [m.column_name for m in models]
     df_valid = (
         df[point_columns].apply(pd.to_numeric, errors="coerce").replace(-1, np.nan)
     )
-    plot_labels = analyzer.get_display_names()
+    plot_labels = [m.display_name for m in models]
 
     fig, ax = plt.subplots(figsize=(12, 6))
     fig.patch.set_facecolor(DARK_BG)
@@ -170,44 +174,16 @@ def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
         flierprops=dict(markeredgecolor=DARK_TEXT, marker="o", markersize=4, alpha=0.5),
     )
 
-    colors = analyzer.get_colors()
+    colors = [color_map.get(m.base_name, "#89b4fa") for m in models]
     for patch, color in zip(bp["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
         patch.set_edgecolor(DARK_TEXT)
 
-    # for i, data in enumerate(data_to_plot, 1):
-    #     median = data.median()
-    #     mean = data.mean()
-    #     q1 = data.quantile(0.25)
-    #     q3 = data.quantile(0.75)
-    #     iqr = q3 - q1
-    #     lower_bound = q1 - 1.5 * iqr
-    #     upper_bound = q3 + 1.5 * iqr
-    #     outliers = data[(data < lower_bound) | (data > upper_bound)]
-
-    #     label_text = f"Med: {median:.2f}\nMean: {mean:.2f}\nOutliers: {len(outliers)}"
-    #     ax.text(
-    #         i + 0.1,
-    #         (ax.get_ylim()[0] + ax.get_ylim()[1]) / 2 - 20,
-    #         label_text,
-    #         ha="left",
-    #         va="center",
-    #         fontsize=8,
-    #         fontweight="bold",
-    #         color=DARK_TEXT,
-    #         bbox=dict(
-    #             boxstyle="round,pad=0.3",
-    #             facecolor=colors[i - 1],
-    #             alpha=0.5,
-    #             edgecolor=DARK_TEXT,
-    #         ),
-    #     )
-
     ax.set_xticklabels(plot_labels, fontweight="bold", color=DARK_TEXT)
     ax.set_ylabel("Validity Score", fontsize=12, fontweight="bold", color=DARK_TEXT)
     ax.set_title(
-        f"Distribution of Validity Scores (samples: {len(df)})",
+        f"{title} (samples: {len(df)})",
         fontsize=14,
         fontweight="bold",
         color=DARK_TEXT,
@@ -215,7 +191,61 @@ def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
     plt.xticks(rotation=20, ha="right", fontsize=10, color=DARK_TEXT)
     _configure_dark_plot(ax)
 
-    _save_plot("model_comparison_boxplot.png")
+    _save_plot(filename)
+
+
+def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
+    logger.info("Creating model comparison boxplots")
+
+    models_by_base = {}
+    own_metrics_model = None
+
+    for m in analyzer.models:
+        if m.base_name == "own_metrics":
+            own_metrics_model = m
+            continue
+
+        if m.base_name not in models_by_base:
+            models_by_base[m.base_name] = []
+        models_by_base[m.base_name].append(m)
+
+    for base_name, models in models_by_base.items():
+        models.sort(key=lambda x: float(x.temperature) if x.temperature else -1)
+
+        _create_single_boxplot(
+            df,
+            models,
+            f"model_comparison_boxplot_{base_name}.png",
+            f"Validity Scores - {base_name}",
+            analyzer._color_map,
+        )
+
+    best_models = []
+    if own_metrics_model:
+        best_models.append(own_metrics_model)
+
+    for base_name, models in models_by_base.items():
+        best_model = None
+        min_failure_rate = float("inf")
+
+        for m in models:
+            col_numeric = pd.to_numeric(df[m.column_name], errors="coerce")
+            failure_rate = (col_numeric == -1).mean()
+
+            if failure_rate < min_failure_rate:
+                min_failure_rate = failure_rate
+                best_model = m
+
+        if best_model:
+            best_models.append(best_model)
+
+    _create_single_boxplot(
+        df,
+        best_models,
+        "model_comparison_boxplot_best.png",
+        "Validity Scores - Lowest Failure Rate",
+        analyzer._color_map,
+    )
 
 
 def _failure_analysis_detailed(df, point_columns, analyzer: ModelAnalyzer):
@@ -251,7 +281,7 @@ def _failure_analysis_detailed(df, point_columns, analyzer: ModelAnalyzer):
     ax.invert_yaxis()
     ax.set_xlabel("Failure Rate (%)", fontsize=12, fontweight="bold", color=DARK_TEXT)
     ax.set_title(
-        f"Classification Failure Rate (samples: {len(df)})",
+        f"Classification Failure Rate with Different Temperatures (samples: {len(df)})",
         fontsize=13,
         fontweight="bold",
         color=DARK_TEXT,
@@ -277,16 +307,52 @@ def _failure_analysis_detailed(df, point_columns, analyzer: ModelAnalyzer):
 def _spam_agreement_heatmap(
     df, point_columns, analyzer: ModelAnalyzer, spam_threshold=20
 ):
-    logger.info("Creating spam agreement heatmap")
+    logger.info("Creating spam agreement heatmap for best models")
+
+    models_by_base = {}
+    own_metrics_model = None
+
+    for m in analyzer.models:
+        if m.base_name == "own_metrics":
+            own_metrics_model = m
+            continue
+
+        if m.base_name not in models_by_base:
+            models_by_base[m.base_name] = []
+        models_by_base[m.base_name].append(m)
+
+    best_models = []
+    if own_metrics_model:
+        best_models.append(own_metrics_model)
+
+    for base_name, models in models_by_base.items():
+        best_model = None
+        min_failure_rate = float("inf")
+
+        for m in models:
+            col_numeric = pd.to_numeric(df[m.column_name], errors="coerce")
+            failure_rate = (col_numeric == -1).mean()
+
+            if failure_rate < min_failure_rate:
+                min_failure_rate = failure_rate
+                best_model = m
+
+        if best_model:
+            best_models.append(best_model)
+
+    # Use best_models for the heatmap
+    selected_point_columns = [m.column_name for m in best_models]
+    plot_labels = [m.display_name for m in best_models]
 
     df_valid = (
-        df[point_columns].apply(pd.to_numeric, errors="coerce").replace(-1, np.nan)
+        df[selected_point_columns]
+        .apply(pd.to_numeric, errors="coerce")
+        .replace(-1, np.nan)
     )
-    plot_labels = analyzer.get_display_names()
 
     spam_matrix = (df_valid < spam_threshold).astype(float)
 
-    n_models = len(point_columns)
+    n_models = len(selected_point_columns)
     agreement = np.zeros((n_models, n_models))
 
     for i in range(n_models):
@@ -311,6 +377,20 @@ def _spam_agreement_heatmap(
 
     im = ax.imshow(agreement, cmap=cmap, vmin=0, vmax=1)
 
+    for i in range(n_models):
+        for j in range(n_models):
+            if not np.isnan(agreement[i, j]):
+                ax.text(
+                    j,
+                    i,
+                    f"{agreement[i, j]:.2f}",
+                    ha="center",
+                    va="center",
+                    color="black",
+                    fontweight="bold",
+                    fontsize=18,
+                )
+
     ax.set_xticks(np.arange(n_models + 1) - 0.5, minor=True)
     ax.set_yticks(np.arange(n_models + 1) - 0.5, minor=True)
     ax.grid(which="minor", color=DARK_TEXT, linestyle="-", linewidth=1)
@@ -324,7 +404,7 @@ def _spam_agreement_heatmap(
     ax.set_yticklabels(plot_labels, fontweight="bold", color=DARK_TEXT)
 
     ax.set_title(
-        f"Spam Agreement (samples: {len(df)})",
+        f"Spam Agreement - Lowest failure rate Models (samples: {len(df)})",
         fontsize=14,
         fontweight="bold",
         color=DARK_TEXT,
@@ -406,22 +486,6 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     timing_data = []
     export_folder = config.BENCHMARK_FOLDER + "/timing"
 
-    own_metrics_timing_path = os.path.join(export_folder, "own_metrics_timing.csv")
-    if os.path.exists(own_metrics_timing_path):
-        df_timing = pd.read_csv(own_metrics_timing_path)
-        total_time = df_timing["Timing (s)"].sum()
-        avg_time = df_timing["Timing (s)"].mean()
-        timing_data.append(
-            {
-                "Model": "Own Metrics",
-                "RawName": "own_metrics",
-                "Total Time (s)": total_time,
-                "Average Time per Item (s)": avg_time,
-                "Items Processed": len(df_timing),
-            }
-        )
-        logger.info(f"Found timing data for OwnMetrics: {len(df_timing)} items")
-
     for filename in os.listdir(export_folder):
         if "timing" in filename.lower() and filename.endswith(".csv"):
             if filename == "own_metrics_timing.csv":
@@ -434,7 +498,9 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
                     total_time = df_timing["Timing (s)"].sum()
                     avg_time = df_timing["Timing (s)"].mean()
                     raw_name = filename.replace("_timing.csv", "")
-                    model_name = raw_name.replace("_", " ")
+                    model_name = ModelInfo.from_column(
+                        raw_name + "_validity_point"
+                    ).display_name
                     timing_data.append(
                         {
                             "Model": model_name,
@@ -449,6 +515,22 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
                     )
             except Exception as e:
                 logger.warning(f"Could not read timing file {filename}: {e}")
+
+    own_metrics_timing_path = os.path.join(export_folder, "own_metrics_timing.csv")
+    if os.path.exists(own_metrics_timing_path):
+        df_timing = pd.read_csv(own_metrics_timing_path)
+        total_time = df_timing["Timing (s)"].sum()
+        avg_time = df_timing["Timing (s)"].mean()
+        timing_data.append(
+            {
+                "Model": "Own Metrics",
+                "RawName": "own_metrics",
+                "Total Time (s)": total_time,
+                "Average Time per Item (s)": avg_time,
+                "Items Processed": len(df_timing),
+            }
+        )
+    logger.info(f"Found timing data for OwnMetrics: {len(df_timing)} items")
 
     if not timing_data:
         logger.warning("No timing data found. Skipping execution time analysis.")
@@ -466,7 +548,7 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     }
 
     timing_df["sort_order"] = timing_df["RawName"].map(
-        lambda x: model_order.get(x, 999)
+        lambda x: -1 if x == "own_metrics" else model_order.get(x, 999)
     )
     timing_df = timing_df.sort_values("sort_order").reset_index(drop=True)
 
@@ -518,7 +600,7 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
         "Average Time per Item (s)", fontsize=12, fontweight="bold", color=DARK_TEXT
     )
     ax.set_title(
-        f"Average Execution Time per Item (samples: {len(df_timing)})",
+        "Average Execution Time per Item (samples: 10000)",
         fontsize=13,
         fontweight="bold",
         color=DARK_TEXT,
@@ -543,12 +625,13 @@ def run_benchmark():
     logger.info(f"Analyzing {len(df)} tasks")
 
     analyzer = ModelAnalyzer(point_columns)
+    sorted_point_columns = analyzer.get_column_names()
 
-    _statistical_summary(df, point_columns, analyzer)
-    _model_comparison_boxplot(df, point_columns, analyzer)
-    _failure_analysis_detailed(df, point_columns, analyzer)
-    _spam_agreement_heatmap(df, point_columns, analyzer, spam_threshold=20)
-    _spam_detected_analysis(df, point_columns, analyzer)
+    _statistical_summary(df, sorted_point_columns, analyzer)
+    _model_comparison_boxplot(df, sorted_point_columns, analyzer)
+    _failure_analysis_detailed(df, sorted_point_columns, analyzer)
+    _spam_agreement_heatmap(df, sorted_point_columns, analyzer, spam_threshold=20)
+    _spam_detected_analysis(df, sorted_point_columns, analyzer)
     _model_execution_time_analysis(analyzer)
 
     logger.info("Benchmarking complete")
