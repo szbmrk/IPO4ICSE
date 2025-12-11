@@ -1,0 +1,3 @@
+- get cleaned full result and put it in a git repo
+- try different prompts
+- try voting methods
