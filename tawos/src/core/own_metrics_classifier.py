@@ -5,7 +5,7 @@ from core.log import get_logger
 from config_loader import config
 
 
-def _calculate_length_score(title, description):  # 0-30 points
+def _calculate_length_score(title: str, description: str) -> int:  # 0-30 points
     score = 0
 
     if len(title) >= 10:
@@ -29,7 +29,7 @@ def _calculate_length_score(title, description):  # 0-30 points
     return min(score, 30)
 
 
-def _calculate_structure_score(description):  # 0-10 points
+def _calculate_structure_score(description: str) -> int:  # 0-10 points
     score = 0
 
     if "\n" in description:
@@ -42,7 +42,7 @@ def _calculate_structure_score(description):  # 0-10 points
     return min(score, 10)
 
 
-def _calculate_style_score(title, description):  # 0-20 points
+def _calculate_style_score(title: str, description: str) -> int:  # 0-20 points
     score = 20
 
     text = title + " " + description
@@ -67,7 +67,9 @@ def _calculate_style_score(title, description):  # 0-20 points
     return max(score, 0)
 
 
-def _calculate_professionalism_score(title, description):  # 0-20 points
+def _calculate_professionalism_score(
+    title: str, description: str
+) -> int:  # 0-20 points
     score = 20
 
     text = (title + " " + description).lower()
@@ -196,7 +198,9 @@ def _calculate_professionalism_score(title, description):  # 0-20 points
     return max(score, 0)
 
 
-def _calculate_technical_content_score(title, description):  # 0-20 points
+def _calculate_technical_content_score(
+    title: str, description: str
+) -> int:  # 0-20 points
     score = 0
 
     text = title + " " + description
@@ -251,7 +255,7 @@ def _calculate_technical_content_score(title, description):  # 0-20 points
     return min(score, 20)
 
 
-def _detect_spam_or_invalid(title, description):
+def _detect_spam_or_invalid(title: str, description: str) -> bool:
     text = (title + " " + description).lower()
 
     if len(title.strip()) < 5 or len(description.strip()) < 10:
@@ -272,7 +276,7 @@ def _detect_spam_or_invalid(title, description):
 
 
 class OwnMetricsClassifier(BaseClassifier):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             model_name="OwnMetrics",
             batch_size=config.LOCAL_MODEL_BATCH_SIZE,
@@ -283,7 +287,9 @@ class OwnMetricsClassifier(BaseClassifier):
     async def _get_model_name(self) -> str:
         return "OwnMetrics"
 
-    async def _classify_single(self, session, title, desc) -> int | None:
+    async def _classify_single(
+        self, session: object, title: str, desc: str
+    ) -> int | None:
         title = title if isinstance(title, str) else ""
         desc = desc if isinstance(desc, str) else ""
 

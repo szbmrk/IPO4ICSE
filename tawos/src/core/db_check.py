@@ -6,7 +6,7 @@ from core.log import get_logger
 logger = get_logger("DB Check")
 
 
-def check_mysql_connection():
+def check_mysql_connection() -> bool:
     try:
         conn = pymysql.connect(
             host=config.DB_HOST,
@@ -26,7 +26,7 @@ def check_mysql_connection():
         return False
 
 
-def check_mysql_server_running():
+def check_mysql_server_running() -> bool:
     try:
         conn = pymysql.connect(
             host=config.DB_HOST,
@@ -57,7 +57,7 @@ def check_mysql_server_running():
         return False
 
 
-def ensure_mysql_connection():
+def ensure_mysql_connection() -> None:
     if not check_mysql_server_running():
         logger.error("=" * 60)
         logger.error("MySQL server is not running or not accessible!")

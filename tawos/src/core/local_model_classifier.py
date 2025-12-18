@@ -7,7 +7,7 @@ from core.base_classifier import BaseClassifier, extract_json
 
 
 class LocalModelClassifier(BaseClassifier):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             model_name="LocalModel",
             batch_size=config.LOCAL_MODEL_BATCH_SIZE,
@@ -28,7 +28,9 @@ class LocalModelClassifier(BaseClassifier):
         except Exception:
             return f"unkown_model_temp_{config.LOCAL_MODEL_TEMP}"
 
-    async def _classify_single(self, session, title, desc) -> int | None:
+    async def _classify_single(
+        self, session: object, title: str, desc: str
+    ) -> int | None:
         desc = desc[:1000] + "..." if len(desc) > 1000 else desc
         prompt = f"""
 You are a classifier. Output ONLY valid JSON. 
@@ -62,5 +64,5 @@ Respond only with JSON.
         except Exception:
             return None
 
-    def get_timing_data(self):
+    def get_timing_data(self) -> list:
         return self.timing_data

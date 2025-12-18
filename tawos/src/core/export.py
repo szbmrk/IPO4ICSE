@@ -7,14 +7,16 @@ from core.log import get_logger
 logger = get_logger("Export")
 
 
-def _export(query: str, file_name: str, engine, params=None):
+def _export(
+    query: str, file_name: str, engine: object, params: dict | None = None
+) -> None:
     df = pd.read_sql(text(query), engine, params=params or {})
     df.to_csv(f"{config.EXPORT_FOLDER}/{file_name}.csv", sep=";", index=False)
     logger.info(f"{file_name}.csv  ({len(df)} rows)")
     logger.info("Exporting related records...")
 
 
-def export_sql_to_csv():
+def export_sql_to_csv() -> None:
     os.makedirs(config.EXPORT_FOLDER, exist_ok=True)
     os.makedirs(f"{config.EXPORT_FOLDER}/timing", exist_ok=True)
 

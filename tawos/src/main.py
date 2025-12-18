@@ -19,13 +19,13 @@ from core.own_metrics_classifier import OwnMetricsClassifier
 logger = get_logger("main")
 
 
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: object) -> None:
     logger.warning("\nInterrupt received! Stopping gracefully...")
     logger.info("Cleaning up and exiting...")
     sys.exit(130)
 
 
-def export(force=False):
+def export(force: bool = False) -> None:
     if force:
         export_sql_to_csv()
         remove_unnecessery_columns()
@@ -39,7 +39,7 @@ def export(force=False):
         remove_unnecessery_columns()
 
 
-def main():
+def main() -> None:
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 

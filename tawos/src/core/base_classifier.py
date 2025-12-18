@@ -46,7 +46,7 @@ def extract_json(text: str) -> int:
 
 
 class BaseClassifier(ABC):
-    def __init__(self, model_name, batch_size, timing_data):
+    def __init__(self, model_name: str, batch_size: int, timing_data: list) -> None:
         self.model_name = model_name
         self.batch_size = batch_size
         self.timing_data = timing_data
@@ -56,10 +56,12 @@ class BaseClassifier(ABC):
         pass
 
     @abstractmethod
-    async def _classify_single(self, session, title, desc) -> int | None:
+    async def _classify_single(
+        self, session: object, title: str, desc: str
+    ) -> int | None:
         pass
 
-    async def _classify_batch(self, rows):
+    async def _classify_batch(self, rows: list) -> list[int]:
         async with aiohttp.ClientSession() as session:
             tasks = [
                 self._classify_single(session, title, desc) for title, desc in rows
@@ -76,7 +78,9 @@ class BaseClassifier(ABC):
 
             return processed
 
-    async def _classify_dataframe(self, df):
+    async def _classify_dataframe(
+        self, df: pd.DataFrame
+    ) -> tuple[list[int] | None, str]:
         logger = get_logger(self.model_name)
         model_name = await self._get_model_name()
         points_column = f"{model_name}_validity_point"
@@ -121,5 +125,5 @@ class BaseClassifier(ABC):
         logger.info(f"Saved local model timing data to {timing_file_path}")
         return results, points_column
 
-    async def classify(self, df):
+    async def classify(self, df: pd.DataFrame) -> tuple[list[int] | None, str]:
         return await self._classify_dataframe(df)

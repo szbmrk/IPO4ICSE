@@ -60,7 +60,7 @@ class ModelInfo:
 
 
 class ModelAnalyzer:
-    def __init__(self, point_columns: List[str]):
+    def __init__(self, point_columns: List[str]) -> None:
         self.models = [ModelInfo.from_column(col) for col in point_columns]
 
         def sort_key(m: ModelInfo):
@@ -89,7 +89,7 @@ class ModelAnalyzer:
         return [m.column_name for m in self.models]
 
 
-def _configure_dark_plot(ax):
+def _configure_dark_plot(ax: object) -> None:
     ax.set_facecolor(DARK_BG)
     ax.figure.patch.set_facecolor(DARK_BG)
     ax.tick_params(colors=DARK_TEXT)
@@ -103,7 +103,7 @@ def _configure_dark_plot(ax):
     ax.grid(alpha=0.2, color=DARK_GRID)
 
 
-def _save_plot(filename):
+def _save_plot(filename: str) -> None:
     path = os.path.join(OUTPUT_DIR, filename)
     plt.tight_layout()
     plt.savefig(path, dpi=300, bbox_inches="tight", facecolor=DARK_BG)
@@ -111,7 +111,9 @@ def _save_plot(filename):
     logger.info(f"Saved: {path}")
 
 
-def _statistical_summary(df, point_columns, analyzer: ModelAnalyzer):
+def _statistical_summary(
+    df: pd.DataFrame, point_columns: list[str], analyzer: ModelAnalyzer
+) -> pd.DataFrame:
     logger.info("Generating statistical summary")
 
     df_numeric = df[point_columns].apply(pd.to_numeric, errors="coerce")
@@ -137,7 +139,7 @@ def _statistical_summary(df, point_columns, analyzer: ModelAnalyzer):
     return summary
 
 
-def _format_time(value):
+def _format_time(value: float) -> str:
     if value >= 60:
         return f"{value / 60:.2f}m"
     elif value >= 1:
@@ -147,8 +149,12 @@ def _format_time(value):
 
 
 def _create_single_boxplot(
-    df, models: List[ModelInfo], filename: str, title: str, color_map: dict
-):
+    df: pd.DataFrame,
+    models: List[ModelInfo],
+    filename: str,
+    title: str,
+    color_map: dict,
+) -> None:
     point_columns = [m.column_name for m in models]
     df_valid = (
         df[point_columns].apply(pd.to_numeric, errors="coerce").replace(-1, np.nan)
@@ -194,7 +200,9 @@ def _create_single_boxplot(
     _save_plot(filename)
 
 
-def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
+def _model_comparison_boxplot(
+    df: pd.DataFrame, point_columns: list[str], analyzer: ModelAnalyzer
+) -> None:
     logger.info("Creating model comparison boxplots")
 
     models_by_base = {}
@@ -248,7 +256,9 @@ def _model_comparison_boxplot(df, point_columns, analyzer: ModelAnalyzer):
     )
 
 
-def _failure_analysis_detailed(df, point_columns, analyzer: ModelAnalyzer):
+def _failure_analysis_detailed(
+    df: pd.DataFrame, point_columns: list[str], analyzer: ModelAnalyzer
+) -> None:
     logger.info("Creating detailed failure analysis")
 
     failure_data = []
@@ -305,8 +315,11 @@ def _failure_analysis_detailed(df, point_columns, analyzer: ModelAnalyzer):
 
 
 def _spam_agreement_heatmap(
-    df, point_columns, analyzer: ModelAnalyzer, spam_threshold=20
-):
+    df: pd.DataFrame,
+    point_columns: list[str],
+    analyzer: ModelAnalyzer,
+    spam_threshold: int = 20,
+) -> None:
     logger.info("Creating spam agreement heatmap for best models")
 
     models_by_base = {}
@@ -416,7 +429,9 @@ def _spam_agreement_heatmap(
     _save_plot("model_spam_agreement_heatmap.png")
 
 
-def _spam_detected_analysis(df, point_columns, analyzer: ModelAnalyzer):
+def _spam_detected_analysis(
+    df: pd.DataFrame, point_columns: list[str], analyzer: ModelAnalyzer
+) -> None:
     logger.info("Analyzing spam detection rates")
 
     spam_data = []
@@ -479,7 +494,7 @@ def _spam_detected_analysis(df, point_columns, analyzer: ModelAnalyzer):
     _save_plot("spam_detection_rate_by_model.png")
 
 
-def _model_execution_time_analysis(analyzer: ModelAnalyzer):
+def _model_execution_time_analysis(analyzer: ModelAnalyzer) -> None:
     logger.info("Creating model execution time analysis")
 
     timing_data = []
@@ -612,7 +627,7 @@ def _model_execution_time_analysis(analyzer: ModelAnalyzer):
     _save_plot("model_execution_time_average.png")
 
 
-def run_benchmark():
+def run_benchmark() -> None:
     logger.info("Running benchmarks")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 

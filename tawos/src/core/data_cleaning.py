@@ -12,7 +12,7 @@ logger = get_logger("DataCleaning")
 
 def _remove_columns_from_csv(
     file_name: str, columns: list[str], folder_path: str = config.EXPORT_FOLDER
-):
+) -> None:
     file_path = os.path.join(folder_path, file_name)
 
     if not os.path.exists(file_path):
@@ -36,7 +36,7 @@ def _remove_columns_from_csv(
     logger.info(f"Saved modified file as '{output_file}'")
 
 
-def remove_unnecessery_columns():
+def remove_unnecessery_columns() -> None:
     _remove_columns_from_csv("Project.csv", ["URL", "Project_Key"])
     _remove_columns_from_csv("Repository.csv", ["URL"])
     _remove_columns_from_csv("Issue.csv", ["Jira_ID", "Issue_Key", "URL"])
@@ -44,7 +44,7 @@ def remove_unnecessery_columns():
     logger.info("Removing unnecessery columns done")
 
 
-def add_points_generated_by_local_model(classifier: LocalModelClassifier):
+def add_points_generated_by_local_model(classifier: LocalModelClassifier) -> None:
     logger.info("Starting classifying by local model")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = safe_read_csv(issues_path)
@@ -58,7 +58,7 @@ def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     logger.info(f"Saved modified file as '{issues_path}'")
 
 
-def add_points_generated_by_own_metrics(classifier: OwnMetricsClassifier):
+def add_points_generated_by_own_metrics(classifier: OwnMetricsClassifier) -> None:
     logger.info("Starting classifying by own metrics")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = safe_read_csv(issues_path)
@@ -75,7 +75,7 @@ def add_points_generated_by_own_metrics(classifier: OwnMetricsClassifier):
     logger.info(f"Saved modified file as '{issues_path}'")
 
 
-def filter_by_own_metrics():
+def filter_by_own_metrics() -> None:
     logger.info("Starting filtering by own metrics")
 
     source_folder = config.EXPORT_FOLDER

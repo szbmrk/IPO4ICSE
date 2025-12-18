@@ -14,7 +14,7 @@ RESET_COLOR = "\033[0m"
 
 
 class ColoredFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         record_copy = copy.copy(record)
         level_color = LOG_COLORS.get(record_copy.levelname, "")
         record_copy.levelname = f"{level_color}{record_copy.levelname}{RESET_COLOR}"
