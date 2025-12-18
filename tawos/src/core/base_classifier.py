@@ -113,6 +113,7 @@ class BaseClassifier(ABC):
             {"Row": range(len(self.timing_data)), "Timing (s)": self.timing_data}
         )
         name = await self._get_model_name()
+        os.makedirs(f"{config.EXPORT_FOLDER}/timing", exist_ok=True)
         timing_file_path = os.path.join(
             f"{config.EXPORT_FOLDER}/timing", f"{name}_timing.csv"
         )

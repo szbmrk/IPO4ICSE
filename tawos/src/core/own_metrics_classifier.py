@@ -1,11 +1,8 @@
-import os
-import pandas as pd
 import re
 import time
+from core.base_classifier import BaseClassifier
 from core.log import get_logger
 from config_loader import config
-
-logger = get_logger("OwnMetric")
 
 
 def _calculate_length_score(title, description):  # 0-30 points
@@ -274,56 +271,40 @@ def _detect_spam_or_invalid(title, description):
     return False
 
 
-def _calculate_row_points(title, description):
-    title = title if isinstance(title, str) else ""
-    description = description if isinstance(description, str) else ""
+class OwnMetricsClassifier(BaseClassifier):
+    def __init__(self):
+        super().__init__(
+            model_name="OwnMetrics",
+            batch_size=config.LOCAL_MODEL_BATCH_SIZE,
+            timing_data=[],
+        )
+        self.logger = get_logger(self.model_name)
 
-    title = title.replace('"', "")
-    description = description.replace('"', "")
+    async def _get_model_name(self) -> str:
+        return "OwnMetrics"
 
-    if _detect_spam_or_invalid(title, description):
-        return 0
+    async def _classify_single(self, session, title, desc) -> int | None:
+        title = title if isinstance(title, str) else ""
+        desc = desc if isinstance(desc, str) else ""
 
-    length = _calculate_length_score(title, description)
-    structure = _calculate_structure_score(description)
-    style = _calculate_style_score(title, description)
-    professionalism = _calculate_professionalism_score(title, description)
-    technical = _calculate_technical_content_score(title, description)
+        title = title.replace('"', "")
+        desc = desc.replace('"', "")
 
-    total_score = length + structure + style + professionalism + technical
-
-    return max(0, min(100, total_score))
-
-
-def classify_by_own_metrics(df: pd.DataFrame) -> list[int]:
-    total_rows = len(df)
-    logger.info(f"Local metric classification started for {total_rows} rows")
-
-    rows = list(df[["Title", "Description"]].itertuples(index=False, name=None))
-    timing_data = []
-
-    results = []
-    for title, description in rows:
         start_time = time.time()
-        score = _calculate_row_points(title, description)
+
+        if _detect_spam_or_invalid(title, desc):
+            score = 0
+        else:
+            length = _calculate_length_score(title, desc)
+            structure = _calculate_structure_score(desc)
+            style = _calculate_style_score(title, desc)
+            professionalism = _calculate_professionalism_score(title, desc)
+            technical = _calculate_technical_content_score(title, desc)
+
+            score = length + structure + style + professionalism + technical
+            score = max(0, min(100, score))
+
         elapsed_time = time.time() - start_time
-        timing_data.append(elapsed_time)
-        results.append(score)
+        self.timing_data.append(elapsed_time)
 
-    avg_score = sum(results) / len(results) if results else 0
-    spam_count = sum(1 for r in results if r < 20)
-
-    logger.info(f"Local metric classification finished for {total_rows} rows")
-    logger.info(f"Average validity score: {avg_score:.2f}")
-    logger.info(f"Spam/invalid issues detected: {spam_count}")
-
-    timing_df = pd.DataFrame(
-        {"Row": range(len(timing_data)), "Timing (s)": timing_data}
-    )
-    timing_file_path = os.path.join(
-        f"{config.EXPORT_FOLDER}/timing", "own_metrics_timing.csv"
-    )
-    timing_df.to_csv(timing_file_path, index=False)
-    logger.info(f"Saved timing data to {timing_file_path}")
-
-    return results
+        return score

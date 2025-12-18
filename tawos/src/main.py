@@ -13,6 +13,7 @@ from core.log import get_logger
 from core.db_check import ensure_mysql_connection
 from config_loader import config
 from core.local_model_classifier import LocalModelClassifier
+from core.own_metrics_classifier import OwnMetricsClassifier
 
 
 logger = get_logger("main")
@@ -71,7 +72,8 @@ def main():
         exit(0)
 
     if not args.skip_own_metrics:
-        add_points_generated_by_own_metrics()
+        own_classifier = OwnMetricsClassifier()
+        add_points_generated_by_own_metrics(own_classifier)
     else:
         logger.info("Skipping own metrics calculation (--skip-own-metrics flag set)")
 

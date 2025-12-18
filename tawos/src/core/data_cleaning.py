@@ -2,9 +2,9 @@ import asyncio
 import os
 
 from core.local_model_classifier import LocalModelClassifier
+from core.own_metrics_classifier import OwnMetricsClassifier
 from core.log import get_logger
 from config_loader import config
-from core.own_metrics_classifier import classify_by_own_metrics
 from utils.file_reading import safe_read_csv
 
 logger = get_logger("DataCleaning")
@@ -51,7 +51,6 @@ def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     points, column_name = asyncio.run(classifier.classify(df))
 
     if points is None:
-        logger.info(f"Skipping saving for {column_name} as it was skipped.")
         return
 
     df[column_name] = points
@@ -59,20 +58,18 @@ def add_points_generated_by_local_model(classifier: LocalModelClassifier):
     logger.info(f"Saved modified file as '{issues_path}'")
 
 
-def add_points_generated_by_own_metrics():
+def add_points_generated_by_own_metrics(classifier: OwnMetricsClassifier):
     logger.info("Starting classifying by own metrics")
-    logger.info(f"Export folder: {config.EXPORT_FOLDER}")
     issues_path = os.path.join(config.EXPORT_FOLDER, "Issue.csv")
     df = safe_read_csv(issues_path)
+    points, _ = asyncio.run(classifier.classify(df))
 
     if "OwnMetrics_validity_point" in df.columns:
         logger.info(
             "Own metrics already computed (OwnMetrics_validity_point column exists)"
         )
-        logger.info("Skipping own metrics calculation. Use --export to recalculate.")
         return
 
-    points = classify_by_own_metrics(df)
     df["OwnMetrics_validity_point"] = points
     df.to_csv(issues_path, sep=";", index=False)
     logger.info(f"Saved modified file as '{issues_path}'")
@@ -145,7 +142,6 @@ def filter_by_own_metrics():
         else:
             logger.warning(f"{filename} not found, skipping.")
 
-    # 3. Copy other files
     other_files = [
         "Component.csv",
         "User.csv",
