@@ -39,7 +39,17 @@ def _remove_columns_from_csv(
 def remove_unnecessery_columns() -> None:
     _remove_columns_from_csv("Project.csv", ["URL", "Project_Key"])
     _remove_columns_from_csv("Repository.csv", ["URL"])
-    _remove_columns_from_csv("Issue.csv", ["Jira_ID", "Issue_Key", "URL"])
+    _remove_columns_from_csv(
+        "Issue.csv",
+        [
+            "Description_Text",
+            "Description_Code",
+            "Pull_Request_URL",
+            "Jira_ID",
+            "Issue_Key",
+            "URL",
+        ],
+    )
     _remove_columns_from_csv("Component.csv", ["Jira_ID"])
     logger.info("Removing unnecessery columns done")
 
